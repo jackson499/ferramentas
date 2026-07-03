@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compilador Excel (Simples) - Ferramentas Jackson</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg:#101418; --panel:#1a2129; --panel2:#212a34; --line:#2e3a47;
+    --txt:#e8edf2; --mut:#8b9aa8; --acc:#35c4a2; --acc2:#2aa489;
+    --err:#e06464;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    background:var(--bg); color:var(--txt);
+    font-family:"Segoe UI", system-ui, sans-serif;
+    min-height:100vh;
+  }
+  .navbar {
+    display:flex; gap:0; background:#0b0e12;
+    border-bottom:2px solid var(--line);
+    position:sticky; top:0; z-index:100;
+  }
+  .navbar a {
+    flex:1; text-decoration:none; color:var(--mut);
+    padding:14px 20px; font-size:.92rem; font-weight:600;
+    text-align:center; transition:all .15s; position:relative;
+  }
+  .navbar a:hover { color:var(--txt); background:var(--panel); }
+  .navbar a.active { color:var(--acc); background:var(--panel); }
+  .navbar a.active::after {
+    content:''; position:absolute; bottom:-2px; left:0; right:0;
+    height:2px; background:var(--acc);
+  }
+  .navbar .icon { margin-right:8px; }
+
+  .content {
+    padding:60px 16px; display:flex; justify-content:center;
+  }
+  .container {
+    width:100%; max-width:650px;
+    background:var(--panel); border:1px solid var(--line);
+    padding:40px; border-radius:12px; text-align:center;
+  }
+  .container h1 { color:var(--acc); margin-bottom:10px; font-size:1.5rem; }
+  .container p.description { color:var(--mut); margin-bottom:30px; }
+  .upload-area {
+    border:2px dashed var(--line); padding:30px; border-radius:8px;
+    background:var(--panel2); transition:border-color .3s;
+  }
+  .upload-area:hover { border-color:var(--acc); }
+  .upload-area strong { color:var(--txt); }
+  input[type="file"] { margin-top:15px; color:var(--txt); }
+  .status-msg { margin-top:25px; font-weight:600; min-height:24px; color:var(--mut); }
+  .success { color:var(--acc); }
+  .error { color:var(--err); }
+  .info { color:#5ba8f7; }
+</style>
+</head>
+<body>
+<nav class="navbar">
+  <a href="index.html"><span class="icon">🏠</span>Início</a>
+  <a href="conversor_audio.html"><span class="icon">🎵</span>Conversor de Áudio</a>
+  <a href="compilador_abas.html"><span class="icon">📊</span>Compilador (Todas Abas)</a>
+  <a href="compilador_simples.html" class="active"><span class="icon">📋</span>Compilador (Simples)</a>
+</nav>
+
+<div class="content">
+  <div class="container">
+    <h1>Compilador Simples</h1>
+    <p class="description">Une múltiplos arquivos <strong>Excel (.xlsx, .xls)</strong> ou <strong>CSV</strong> (apenas a <strong>primeira aba</strong>) em um único documento.</p>
+
+    <div class="upload-area">
+      <strong>Selecione os arquivos:</strong><br>
+      <input type="file" id="fileInput" multiple accept=".csv, .xlsx, .xls">
+    </div>
+
+    <div class="status-msg" id="status">Aguardando seleção...</div>
+  </div>
+</div>
+
+<script>
+const statusEl = document.getElementById('status');
+const fileInput = document.getElementById('fileInput');
+
+fileInput.addEventListener('change', async (event) => {
+  const files = event.target.files;
+  if (files.length === 0) return;
+  statusEl.textContent = `Processando ${files.length} arquivo(s)...`;
+  statusEl.className = 'status-msg info';
+  let allRows = [], universalHeader = [];
+
+  try {
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type:'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header:1 });
+      if (jsonData.length > 0) {
+        if (allRows.length === 0) universalHeader = jsonData[0];
+        for (let j = 1; j < jsonData.length; j++) {
+          const row = jsonData[j];
+          if (row.length > 0) allRows.push([file.name, ...row]);
+        }
+      }
+    }
+    if (allRows.length > 0) {
+      const finalHeader = ["Arquivo de Origem", ...universalHeader];
+      downloadExcel(finalHeader, allRows);
+      statusEl.textContent = `Concluido! ${allRows.length} linhas compiladas.`;
+      statusEl.className = 'status-msg success';
+    } else {
+      statusEl.textContent = "Nenhuma linha de dado encontrada.";
+      statusEl.className = 'status-msg error';
+    }
+  } catch(error) {
+    statusEl.textContent = "Erro ao processar: " + error.message;
+    statusEl.className = 'status-msg error';
+  }
+  fileInput.value = "";
+});
+
+function downloadExcel(header, rows) {
+  const worksheetData = [header, ...rows];
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+  XLSX.utils.book_append_sheet(wb, ws, "Compilado");
+  XLSX.writeFile(wb, "compilado_simples_" + new Date().getTime() + ".xlsx");
+}
+</script>
+</body>
+</html>

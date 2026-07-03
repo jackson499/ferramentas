@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ferramentas Jackson</title>
+<style>
+  :root {
+    --bg:#101418; --panel:#1a2129; --panel2:#212a34; --line:#2e3a47;
+    --txt:#e8edf2; --mut:#8b9aa8; --acc:#35c4a2; --acc2:#2aa489;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    background:var(--bg); color:var(--txt);
+    font-family:"Segoe UI", system-ui, sans-serif;
+    min-height:100vh; display:flex; flex-direction:column;
+  }
+  .navbar {
+    display:flex; gap:0; background:#0b0e12;
+    border-bottom:2px solid var(--line);
+    position:sticky; top:0; z-index:100;
+  }
+  .navbar a {
+    flex:1; text-decoration:none; color:var(--mut);
+    padding:14px 20px; font-size:.92rem; font-weight:600;
+    text-align:center; transition:all .15s; position:relative;
+  }
+  .navbar a:hover { color:var(--txt); background:var(--panel); }
+  .navbar a.active { color:var(--acc); background:var(--panel); }
+  .navbar a.active::after {
+    content:''; position:absolute; bottom:-2px; left:0; right:0;
+    height:2px; background:var(--acc);
+  }
+  .navbar .icon { margin-right:8px; }
+
+  .hero {
+    flex:1; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; padding:60px 20px; text-align:center;
+  }
+  .hero h1 { font-size:2.2rem; margin-bottom:12px; }
+  .hero h1 span { color:var(--acc); }
+  .hero p { color:var(--mut); font-size:1rem; margin-bottom:48px; max-width:500px; }
+
+  .cards { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; }
+  .card {
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:32px 28px; width:260px; text-decoration:none; color:var(--txt);
+    transition:border-color .2s, transform .2s;
+  }
+  .card:hover { border-color:var(--acc); transform:translateY(-4px); }
+  .card .emoji { font-size:2.2rem; margin-bottom:14px; display:block; }
+  .card h2 { font-size:1.1rem; margin-bottom:8px; }
+  .card p { color:var(--mut); font-size:.82rem; line-height:1.5; }
+</style>
+</head>
+<body>
+<nav class="navbar">
+  <a href="index.html" class="active"><span class="icon">🏠</span>Início</a>
+  <a href="conversor_audio.html"><span class="icon">🎵</span>Conversor de Áudio</a>
+  <a href="compilador_abas.html"><span class="icon">📊</span>Compilador (Todas Abas)</a>
+  <a href="compilador_simples.html"><span class="icon">📋</span>Compilador (Simples)</a>
+</nav>
+
+<div class="hero">
+  <h1>Ferramentas <span>Jackson</span></h1>
+  <p>Utilitários que rodam 100% no navegador. Nenhum dado é enviado para servidores.</p>
+
+  <div class="cards">
+    <a class="card" href="conversor_audio.html">
+      <span class="emoji">🎵</span>
+      <h2>Conversor de Áudio</h2>
+      <p>Converta entre MP3, Opus, M4A, OGG e WAV direto no navegador com FFmpeg.</p>
+    </a>
+    <a class="card" href="compilador_abas.html">
+      <span class="emoji">📊</span>
+      <h2>Compilador Excel (Todas Abas)</h2>
+      <p>Une múltiplos arquivos Excel/CSV compilando todas as abas em um único arquivo.</p>
+    </a>
+    <a class="card" href="compilador_simples.html">
+      <span class="emoji">📋</span>
+      <h2>Compilador Excel (Simples)</h2>
+      <p>Une múltiplos arquivos Excel/CSV usando apenas a primeira aba de cada arquivo.</p>
+    </a>
+  </div>
+</div>
+</body>
+</html>

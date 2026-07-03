@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conversor de Áudio - Ferramentas Jackson</title>
+<style>
+  :root {
+    --bg:#101418; --panel:#1a2129; --panel2:#212a34; --line:#2e3a47;
+    --txt:#e8edf2; --mut:#8b9aa8; --acc:#35c4a2; --acc2:#2aa489;
+    --warn:#e0b350; --err:#e06464;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    background:var(--bg); color:var(--txt);
+    font-family:"Segoe UI", system-ui, sans-serif;
+    min-height:100vh;
+  }
+  .navbar {
+    display:flex; gap:0; background:#0b0e12;
+    border-bottom:2px solid var(--line);
+    position:sticky; top:0; z-index:100;
+  }
+  .navbar a {
+    flex:1; text-decoration:none; color:var(--mut);
+    padding:14px 20px; font-size:.92rem; font-weight:600;
+    text-align:center; transition:all .15s; position:relative;
+  }
+  .navbar a:hover { color:var(--txt); background:var(--panel); }
+  .navbar a.active { color:var(--acc); background:var(--panel); }
+  .navbar a.active::after {
+    content:''; position:absolute; bottom:-2px; left:0; right:0;
+    height:2px; background:var(--acc);
+  }
+  .navbar .icon { margin-right:8px; }
+
+  .content { padding:32px 16px; display:flex; justify-content:center; }
+  .app { width:100%; max-width:760px; }
+  h1 { font-size:1.5rem; font-weight:600; letter-spacing:.02em; }
+  h1 span { color:var(--acc); }
+  .sub { color:var(--mut); font-size:.85rem; margin:6px 0 24px; }
+  .drop {
+    border:2px dashed var(--line); border-radius:12px;
+    background:var(--panel); padding:42px 20px; text-align:center;
+    cursor:pointer; transition:border-color .15s, background .15s;
+  }
+  .drop:hover, .drop.over { border-color:var(--acc); background:var(--panel2); }
+  .drop p { color:var(--mut); font-size:.9rem; }
+  .drop strong { color:var(--txt); display:block; font-size:1.05rem; margin-bottom:6px; }
+  .opts {
+    display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end;
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:16px; margin-top:16px;
+  }
+  .field { display:flex; flex-direction:column; gap:6px; }
+  .field label { font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; color:var(--mut); }
+  select {
+    background:var(--panel2); color:var(--txt); border:1px solid var(--line);
+    border-radius:8px; padding:9px 12px; font-size:.9rem; min-width:160px;
+  }
+  button.run {
+    margin-left:auto; background:var(--acc); color:#06231c; border:none;
+    border-radius:8px; padding:11px 26px; font-size:.95rem; font-weight:600;
+    cursor:pointer; transition:background .15s;
+  }
+  button.run:hover { background:var(--acc2); }
+  button.run:disabled { background:#33414d; color:#71808d; cursor:not-allowed; }
+  .list { margin-top:16px; display:flex; flex-direction:column; gap:10px; }
+  .item {
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:12px 16px; display:flex; align-items:center; gap:14px;
+  }
+  .item .name { flex:1; min-width:0; }
+  .item .name b { display:block; font-size:.92rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .item .name small { color:var(--mut); font-size:.75rem; }
+  .status { font-size:.78rem; color:var(--mut); white-space:nowrap; }
+  .status.ok { color:var(--acc); }
+  .status.err { color:var(--err); }
+  .status.run { color:var(--warn); }
+  a.dl {
+    background:var(--panel2); border:1px solid var(--acc); color:var(--acc);
+    text-decoration:none; font-size:.8rem; padding:6px 14px; border-radius:7px;
+  }
+  a.dl:hover { background:var(--acc); color:#06231c; }
+  .rm { background:none; border:none; color:var(--mut); cursor:pointer; font-size:1rem; }
+  .rm:hover { color:var(--err); }
+  .log {
+    margin-top:18px; background:#0b0e12; border:1px solid var(--line);
+    border-radius:10px; padding:12px 14px; font-family:Consolas, monospace;
+    font-size:.74rem; color:#6f8294; max-height:140px; overflow-y:auto;
+    white-space:pre-wrap; display:none;
+  }
+  .log.show { display:block; }
+  .note { margin-top:14px; color:var(--mut); font-size:.78rem; line-height:1.5; }
+</style>
+</head>
+<body>
+<nav class="navbar">
+  <a href="index.html"><span class="icon">🏠</span>Início</a>
+  <a href="conversor_audio.html" class="active"><span class="icon">🎵</span>Conversor de Áudio</a>
+  <a href="compilador_abas.html"><span class="icon">📊</span>Compilador (Todas Abas)</a>
+  <a href="compilador_simples.html"><span class="icon">📋</span>Compilador (Simples)</a>
+</nav>
+
+<div class="content">
+  <div class="app">
+    <h1>Conversor de <span>Áudio</span></h1>
+    <p class="sub">MP3 · Opus · M4A (MP4) · OGG · WAV — conversão local no navegador, nenhum arquivo é enviado para servidor.</p>
+
+    <div class="drop" id="drop">
+      <strong>Arraste arquivos de áudio aqui</strong>
+      <p>ou clique para selecionar (mp3, opus, ogg, m4a, mp4, wav, flac...)</p>
+      <input type="file" id="file" multiple accept="audio/*,video/mp4,.opus,.m4a" hidden>
+    </div>
+
+    <div class="opts">
+      <div class="field">
+        <label>Converter para</label>
+        <select id="fmt">
+          <option value="mp3">MP3</option>
+          <option value="opus">Opus (.opus)</option>
+          <option value="m4a">MP4 áudio (.m4a / AAC)</option>
+          <option value="ogg">OGG Vorbis</option>
+          <option value="wav">WAV</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Qualidade</label>
+        <select id="br">
+          <option value="320k">320 kbps</option>
+          <option value="192k" selected>192 kbps</option>
+          <option value="128k">128 kbps</option>
+          <option value="96k">96 kbps</option>
+          <option value="64k">64 kbps</option>
+        </select>
+      </div>
+      <button class="run" id="run" disabled>Carregando motor...</button>
+      <button class="run" id="zip" style="display:none; background:var(--panel2); color:var(--acc); border:1px solid var(--acc);">Baixar todos (.zip)</button>
+    </div>
+
+    <div id="prog" style="display:none; margin-top:14px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px 16px;">
+      <div style="display:flex; justify-content:space-between; font-size:.78rem; color:var(--mut); margin-bottom:8px;">
+        <span id="progTxt">0 / 0</span><span id="progPct">0%</span>
+      </div>
+      <div style="background:#0b0e12; border-radius:6px; height:8px; overflow:hidden;">
+        <div id="progBar" style="background:var(--acc); height:100%; width:0%; transition:width .3s;"></div>
+      </div>
+    </div>
+
+    <div class="list" id="list"></div>
+    <div class="log" id="log"></div>
+    <p class="note">Primeira execução baixa o motor FFmpeg (~5&nbsp;MB) — precisa de internet só nessa etapa. Saída WAV ignora a qualidade selecionada (sem compressão).</p>
+  </div>
+</div>
+
+<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+const { createFFmpeg, fetchFile } = FFmpeg;
+const CORE = 'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js';
+let ffmpeg = null;
+
+function logger({ message }) {
+  logEl.classList.add('show');
+  logEl.textContent += message + "\n";
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+async function freshFFmpeg() {
+  if (ffmpeg) { try { ffmpeg.exit(); } catch(e){} }
+  ffmpeg = createFFmpeg({ log:true, corePath:CORE, mainName:'main' });
+  ffmpeg.setLogger(logger);
+  await ffmpeg.load();
+  return ffmpeg;
+}
+
+const drop = document.getElementById('drop');
+const input = document.getElementById('file');
+const list = document.getElementById('list');
+const runBtn = document.getElementById('run');
+const logEl = document.getElementById('log');
+let files = [];
+let ready = false;
+
+(async () => {
+  try {
+    await freshFFmpeg();
+    ready = true;
+    runBtn.textContent = 'Converter';
+    updateBtn();
+  } catch(e) {
+    runBtn.textContent = 'Erro ao carregar FFmpeg';
+    logEl.classList.add('show');
+    logEl.textContent += 'Falha ao baixar o motor.\n' + e + '\n';
+  }
+})();
+
+function updateBtn(){ runBtn.disabled = !ready || files.length === 0; }
+
+drop.addEventListener('click', () => input.click());
+input.addEventListener('change', e => addFiles(e.target.files));
+['dragover','dragenter'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => addFiles(e.dataTransfer.files));
+
+function addFiles(fl){
+  for (const f of fl) files.push({ file:f, status:'pendente', url:null, outName:null });
+  render(); updateBtn();
+}
+
+function fmtSize(b){ return b > 1048576 ? (b/1048576).toFixed(1)+' MB' : (b/1024).toFixed(0)+' KB'; }
+
+function render(){
+  list.innerHTML = '';
+  files.forEach((it, i) => {
+    const div = document.createElement('div');
+    div.className = 'item';
+    const stClass = it.status==='concluído'?'ok':it.status==='erro'?'err':it.status==='convertendo...'?'run':'';
+    div.innerHTML = `
+      <div class="name"><b>${it.file.name}</b><small>${fmtSize(it.file.size)}</small></div>
+      <span class="status ${stClass}">${it.status}</span>
+      ${it.url ? `<a class="dl" href="${it.url}" download="${it.outName}">Baixar</a>` : ''}
+      <button class="rm" data-i="${i}" title="Remover">✕</button>`;
+    list.appendChild(div);
+  });
+  list.querySelectorAll('.rm').forEach(btn => btn.onclick = () => { files.splice(+btn.dataset.i, 1); render(); updateBtn(); });
+}
+
+function buildArgs(inName, outName, fmt, br){
+  const base = ['-i', inName, '-vn'];
+  switch(fmt){
+    case 'mp3':  return [...base, '-c:a','libmp3lame','-b:a',br,outName];
+    case 'opus': return [...base, '-c:a','libopus','-b:a',br,outName];
+    case 'm4a':  return [...base, '-c:a','aac','-b:a',br,outName];
+    case 'ogg':  return [...base, '-c:a','libvorbis','-b:a',br,outName];
+    case 'wav':  return [...base, '-c:a','pcm_s16le',outName];
+  }
+}
+
+const mimes = { mp3:'audio/mpeg', opus:'audio/ogg', m4a:'audio/mp4', ogg:'audio/ogg', wav:'audio/wav' };
+
+runBtn.addEventListener('click', async () => {
+  const fmt = document.getElementById('fmt').value;
+  const br = document.getElementById('br').value;
+  runBtn.disabled = true;
+  const pend = files.filter(f => f.status !== 'concluído');
+  const prog = document.getElementById('prog');
+  const progBar = document.getElementById('progBar');
+  const progTxt = document.getElementById('progTxt');
+  const progPct = document.getElementById('progPct');
+  prog.style.display = 'block';
+  let done = 0;
+  const upd = () => {
+    progTxt.textContent = done + ' / ' + pend.length;
+    const p = pend.length ? Math.round(done / pend.length * 100) : 0;
+    progPct.textContent = p + '%';
+    progBar.style.width = p + '%';
+  };
+  upd();
+
+  for (const it of pend) {
+    it.status = 'convertendo...'; render();
+    const safeIn = 'in_' + Date.now() + '.' + (it.file.name.split('.').pop() || 'bin');
+    const outName = it.file.name.replace(/\.[^.]+$/, '') + '.' + fmt;
+    const safeOut = 'out_' + Date.now() + '.' + fmt;
+    try {
+      const ff = await freshFFmpeg();
+      ff.FS('writeFile', safeIn, await fetchFile(it.file));
+      await ff.run(...buildArgs(safeIn, safeOut, fmt, br));
+      const data = ff.FS('readFile', safeOut);
+      it.blob = new Blob([data.buffer], { type: mimes[fmt] });
+      it.url = URL.createObjectURL(it.blob);
+      it.outName = outName;
+      it.status = 'concluído';
+    } catch(e) {
+      it.status = 'erro';
+      logEl.classList.add('show');
+      logEl.textContent += 'Erro em ' + it.file.name + ': ' + e + '\n';
+    }
+    done++; upd(); render();
+  }
+  runBtn.disabled = false;
+  if (files.some(f => f.status === 'concluído')) document.getElementById('zip').style.display = 'inline-block';
+});
+
+document.getElementById('zip').addEventListener('click', async () => {
+  const zip = new JSZip();
+  files.filter(f => f.status === 'concluído' && f.blob).forEach(f => zip.file(f.outName, f.blob));
+  const blob = await zip.generateAsync({ type:'blob' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'audios_convertidos.zip';
+  a.click();
+});
+</script>
+</body>
+</html>
