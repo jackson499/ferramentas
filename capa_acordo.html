@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang='pt-BR'>
+<head>
+<meta charset='utf-8'/>
+<meta name='viewport' content='width=device-width, initial-scale=1'/>
+<title>Capa de Acordo – Formulário Preenchível (v428 - Até 15 Contratos)</title>
+<style>
+  :root{--brand:#C81E1E;--ink:#111827;--muted:#4B5563;--line:#D1D5DB;--bg:#FFFFFF}
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:14px/1.45 "Segoe UI",Roboto,Arial,Helvetica,sans-serif}
+  header{padding:16px 20px;border-bottom:2px solid var(--brand);background:#fff}
+  h1{margin:0;font-size:20px;letter-spacing:.3px;color:var(--brand)}
+  .subtitle{color:var(--muted);font-size:12px;margin-top:4px}
+  .container{max-width:1100px;margin:0 auto;padding:12px 20px 36px}
+  .toolbar{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:8px 20px;display:flex;gap:8px;z-index:9;flex-wrap:wrap}
+  button{border:1px solid var(--brand);background:var(--brand);color:#fff;border-radius:0;padding:8px 12px;font-weight:600;cursor:pointer}
+  button.secondary{background:#fff;color:var(--brand)}
+  section{border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:0;padding:10px;margin:12px 0 14px;background:#fff}
+  section h2, section h3{font-size:14px;margin:0 0 8px;color:var(--brand)}
+  .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:8px}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:2px}
+  input,select,textarea{width:100%;border:1px solid var(--line);border-radius:0;padding:8px;font-size:14px;background:#fff}
+  input[readonly]{background-color:#f3f4f6;cursor:not-allowed;}
+  textarea{resize:vertical}
+  .col-1{grid-column:span 1}.col-2{grid-column:span 2}.col-3{grid-column:span 3}.col-4{grid-column:span 4}.col-6{grid-column:span 6}.col-9{grid-column:span 9}.col-12{grid-column:span 12}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .hint{font-size:12px;color:#9CA3AF}
+  .req::after{content:" *";color:var(--brand)}
+  footer{margin-top:20px;color:var(--muted);font-size:12px}
+  hr.separator {border:0; border-top: 1px solid var(--line); margin: 16px 0;}
+  
+  .print-only-content {display: none; white-space: pre-wrap; word-wrap: break-word; padding: 4px 0; border-bottom: 1px solid #111; min-height: 20px;}
+
+  body.print-mode .no-print {display: none;}
+  body.print-mode .print-only-content {display: block;}
+  body.print-mode section{border:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:transparent}
+  body.print-mode select, body.print-mode input[type="date"], body.print-mode input[type="radio"], body.print-mode input[type="number"] {border:0;border-bottom:1px solid #111;border-radius:0;background:transparent;padding:4px 0}
+  body.print-mode input.no-print + .print-only-content { padding-top: 8px;}
+  body.print-mode .toolbar .print-indicator{display:inline-flex;align-items:center;gap:6px;color:#fff;background:#16a34a;border-color:#16a34a}
+  body.print-mode .toolbar .print-indicator::after{content:" Modo impressão ON";font-weight:700}
+  
+  @media print{
+    .toolbar,.no-print,.back-nav{display:none}
+    .print-only-content {display: block;}
+    header{border:0}
+    section{break-inside:avoid;border-left:0}
+    select, input[type="date"], input[type="radio"], input[type="number"] {border:0;border-bottom:1px solid #111;padding:2px 0;background:transparent}
+    button,a{display:none}
+  }
+  .back-nav {
+    background:#0b0e12; border-bottom:2px solid #2e3a47;
+    padding:0; display:flex;
+  }
+  .back-nav a {
+    text-decoration:none; color:#8b9aa8;
+    padding:14px 24px; font-size:.92rem; font-weight:600;
+    transition:all .15s;
+  }
+  .back-nav a:hover { color:#e8edf2; background:#1a2129; }
+  .back-nav .icon { margin-right:8px; }
+
+</style>
+</head>
+<body>
+<nav class="back-nav no-print">
+  <a href="index.html"><span class="icon">🏠</span>Voltar ao Início</a>
+</nav>
+<div class='toolbar'>
+  <button onclick='window.print()'>Salvar como PDF</button>
+  <button class='secondary' onclick='downloadDoc()'>Baixar como Word (.doc)</button>
+  <button class='secondary' onclick='exportJSON()'>Exportar JSON</button>
+  <button class='secondary' onclick='importJSON()'>Importar JSON</button>
+  <button class='secondary print-indicator' id='togglePrint' onclick='togglePrintMode()' type='button'>Modo impressão (linhas)</button>
+</div>
+<header>
+  <h1>CAPA DE ACORDO | BRADESCO</h1>
+  <div class='subtitle'>Perez de Rezende Advocacia — Modelo preenchível (HTML v428)</div>
+</header>
+<div class='container'>
+<form id='formAcordo'>
+
+<section>
+  <h2>Identificação</h2>
+  <div class='grid'>
+    <div class='col-4'><label class='req'>Negociador</label><input name='negociador' class="no-print"/><div class="print-only-content"></div></div>
+    <div class='col-4'><label class='req'>Nº GCPJ</label><input name='num_gcpj' class="no-print" required/><div class="print-only-content"></div></div>
+    <div class='col-4'><label class='req'>Tipo de Documento</label>
+      <select name='tipo_documento' id='tipo_documento' required>
+        <option value=''>Selecione...</option><option>Minuta de Acordo</option><option>Termo de Acordo</option><option>Termo de atualização de parcelas</option><option>Aditamento</option>
+      </select>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Informações do cliente/processo</h2>
+  <div class='grid'>
+    <div class='col-6'><label class='req'>Cliente</label><input name='cliente' class="no-print" required/><div class="print-only-content"></div></div>
+    <div class='col-3'><label class='req'>CPF/CNPJ</label><input name='cpf_cnpj' id='cpf_cnpj' class="no-print" required/><div class="print-only-content"></div></div>
+    <div class='col-3'><label class='req'>Telefone atual</label><input name='telefone' id='telefone' class="no-print" required/><div class="print-only-content"></div></div>
+    <div class='col-12'><label>E-mail</label><input name='email' type='email' class="no-print"/><div class="print-only-content"></div></div>
+    <div class='col-12'><label>Endereço</label><input name='endereco' class="no-print" placeholder="Rua, Número, Bairro, Cidade - Estado, CEP"/><div class="print-only-content"></div></div>
+    <div class='col-3'><label>Carteira/Contrato Anterior</label><input name='carteira_contrato_anterior' class="no-print"/><div class="print-only-content"></div></div>
+    <div class='col-6'><label>Já houve acordo anterior?</label><div class='row'><label><input type='radio' name='acordo_anterior' value='Sim'> Sim</label><label><input type='radio' name='acordo_anterior' value='Não'> Não</label></div></div>
+    <div class='col-3'><label>C/C (Agência / Conta)</label><input name='cc' class="no-print"/><div class="print-only-content"></div></div>
+    <div class='col-12'></div>
+     <div class='col-4' id="vara_group"><label>Vara</label><input name='vara' class="no-print"/><div class="print-only-content"></div></div>
+    <div class='col-3' id="comarca_group"><label>Comarca</label><input name='comarca' class="no-print"/><div class="print-only-content"></div></div>
+    <div class='col-2' id="uf_comarca_group"><label>UF</label>
+        <select name='uf_comarca'>
+            <option value=''>…</option><option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option><option>SE</option><option>TO</option>
+        </select>
+    </div>
+    <div class='col-3' id="num_processo_group"><label>Nº Processo</label><input name='num_processo' class="no-print"/><div class="print-only-content"></div></div>
+  </div>
+</section>
+
+<section>
+    <h2>Contratos do Acordo</h2>
+    <div class="grid">
+        <div class="col-3"><label class="req">Quantidade de Contratos</label>
+            <select id="qtd_contratos">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+                <option value="12">12</option>
+                <option value="13">13</option>
+                <option value="14">14</option>
+                <option value="15">15</option>
+            </select>
+        </div>
+    </div>
+</section>
+
+<div id="contratos_container"></div>
+
+<section>
+  <h2>Informações de Sucumbência</h2>
+  <div class='grid'>
+    <div class='col-3'><label class='req'>Valor</label><input name='suc_valor' id='suc_valor' class="no-print" required/><div class="print-only-content"></div></div>
+    <div class='col-3'><label class='req'>Vencimento</label><input name='suc_vencimento' type='date' required/></div>
+    <div class='col-3'><label class='req'>Modalidade</label>
+      <select name='suc_modalidade' id='suc_modalidade' required>
+        <option value=''>Selecione…</option><option>A vista</option><option>Parcelado</option>
+      </select>
+    </div>
+    <div class='col-3'><label class='req'>Forma de pagamento</label>
+      <select name='suc_forma_pagamento' id='suc_forma_pagamento' required>
+        <option value=''>Selecione…</option><option>Boleto</option><option>Depósito Bancário</option><option>Débito em Conta</option><option>Pix</option><option>Levantamento Judicial</option>
+      </select>
+    </div>
+    <div class='col-3' id="suc_entrada_group" style='display:none;'><label>Valor Entrada</label><input name='suc_valor_entrada' id='suc_valor_entrada' class="no-print"/><div class="print-only-content"></div></div>
+    <div class='col-3' id="suc_saldo_group" style='display:none;'><label>Valor Parcelado</label><input name='suc_valor_parcelado' id='suc_valor_parcelado' class="no-print"/><div class="print-only-content"></div></div>
+    <div class='col-3' id="suc_qtd_parc_group" style='display:none;'><label>Quantidade de Parcelas</label><input name='suc_qtd_parcelas' id='suc_qtd_parcelas' type='number' min='1'/></div>
+    <div class='col-3' id="suc_valor_parc_group" style='display:none;'><label>Valor das Parcelas</label><input name='suc_valor_parcela' id='suc_valor_parcela' class="no-print"/><div class="print-only-content"></div></div>
+    <div class='col-3'><label class='req'>Precisa de Termo?</label>
+      <select name='precisa_termo' id='precisa_termo' required>
+        <option value=''>Selecione…</option><option>Sim</option><option>Não</option>
+      </select>
+    </div>
+    <div class='col-9' id='suc_pix_group' style='display:none;'><label class='req'>Chave Pix (Sucumbência)</label><input name='suc_chave_pix' id='suc_chave_pix' class="no-print"/><div class="print-only-content"></div></div>
+  </div>
+</section>
+
+<section>
+  <h2>Avalistas</h2>
+  <div class='grid'>
+    <div class='col-3'><label class='req'>Possui avalistas?</label>
+      <select name='possui_avalistas' id='possui_avalistas' required>
+        <option value=''>Selecione…</option><option>Não</option><option>Sim</option>
+      </select>
+    </div>
+    <div class='col-3' id='qtd_avalistas_group' style='display:none;'><label class='req'>Quantidade de avalistas</label>
+      <select name='qtd_avalistas' id='qtd_avalistas'>
+        <option value='1'>1</option><option value='2'>2</option><option value='3'>3</option><option value='4'>4</option><option value='5'>5</option>
+      </select>
+    </div>
+  </div>
+  <div id='avalistas_container' style='margin-top:10px;'></div>
+</section>
+
+<section>
+  <h2>Garantias</h2>
+  
+  <h3 style='margin-bottom:8px;color:#555;font-size:13px;'>Garantia: Veículo</h3>
+  <div class='grid'>
+    <div class='col-3'><label>Possui garantia de Veículo?</label>
+      <select name='possui_garantias_veiculo' id='possui_garantias_veiculo'>
+        <option>Não</option><option>Sim</option>
+      </select>
+    </div>
+    <div class='col-3' id='qtd_garantias_veiculo_group' style='display:none;'><label class='req'>Quantidade de veículos</label>
+      <select name='qtd_garantias_veiculo' id='qtd_garantias_veiculo'>
+        <option value='1'>1</option><option value='2'>2</option><option value='3'>3</option><option value='4'>4</option><option value='5'>5</option><option value='6'>6</option><option value='7'>7</option><option value='8'>8</option>
+      </select>
+    </div>
+  </div>
+  <div id='garantias_veiculo_container' style='margin-top:10px;'></div>
+
+  <hr class="separator">
+
+  <h3 style='margin-bottom:8px;color:#555;font-size:13px;'>Garantia: Imóvel</h3>
+  <div class='grid'>
+    <div class='col-3'><label>Possui garantia de Imóvel?</label>
+      <select name='possui_garantias_imovel' id='possui_garantias_imovel'>
+        <option>Não</option><option>Sim</option>
+      </select>
+    </div>
+    <div class='col-3' id='qtd_garantias_imovel_group' style='display:none;'><label class='req'>Quantidade de imóveis</label>
+      <select name='qtd_garantias_imovel' id='qtd_garantias_imovel'>
+        <option value='1'>1</option><option value='2'>2</option><option value='3'>3</option><option value='4'>4</option><option value='5'>5</option><option value='6'>6</option><option value='7'>7</option><option value='8'>8</option>
+      </select>
+    </div>
+  </div>
+  <div id='garantias_imovel_container' style='margin-top:10px;'></div>
+  
+  <hr class="separator">
+
+  <h3 style='margin-bottom:8px;color:#555;font-size:13px;'>Outras Garantias</h3>
+  <div class='grid'>
+    <div class='col-3'>
+      <label>Possui outras garantias?</label>
+      <select name='possui_outras_garantias' id='possui_outras_garantias'>
+        <option>Não</option><option>Sim</option>
+      </select>
+    </div>
+  </div>
+  <div id='outras_garantias_descricao_group' style='display:none; margin-top: 10px;'>
+     <div class='col-12'>
+        <label>Outras garantias (descrição livre)</label>
+        <textarea name='outras_garantias' class="no-print" id='outras_garantias_input' rows="4"></textarea>
+        <div class="print-only-content" id="outras_garantias_print"></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Observações Gerais</h2>
+  <textarea name='observacoes' class="no-print" id="observacoes_input" placeholder='Anotações relevantes sobre o acordo…' rows="5"></textarea>
+  <div class="print-only-content" id="observacoes_print"></div>
+</section>
+
+</form>
+</div>
+
+<script>
+// --- Funções Auxiliares ---
+function togglePrintMode(){ document.body.classList.toggle('print-mode'); }
+function onlyDigits(v){ return (v||'').replace(/\D+/g,''); }
+function maskCPForCNPJ(v){ const d = onlyDigits(v); return d.length <= 11 ? maskCPF(d) : maskCNPJ(d); }
+function maskCPF(v){ v = v.slice(0,11); if(v.length>9) return v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4'); if(v.length>6) return v.replace(/(\d{3})(\d{3})(\d{3})/,'$1.$2.$3'); if(v.length>3) return v.replace(/(\d{3})(\d{3})/,'$1.$2'); return v; }
+function maskCNPJ(v){ v = v.slice(0,14); if(v.length>12) return v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,'$1.$2.$3/$4-$5'); if(v.length>8) return v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})/,'$1.$2.$3/$4'); if(v.length>5) return v.replace(/(\d{2})(\d{3})(\d{3})/,'$1.$2.$3'); if(v.length>2) return v.replace(/(\d{2})(\d{3})/,'$1.$2'); return v; }
+function maskPhone(v){ v = onlyDigits(v).slice(0,11); if(v.length>10) return v.replace(/(\d{2})(\d{5})(\d{4})/,'($1) $2-$3'); if(v.length>6) return v.replace(/(\d{2})(\d{4})(\d{4})/,'($1) $2-$3'); if(v.length>2) return v.replace(/(\d{2})(\d+)/,'($1) $2'); if(v) return `(${v}`; return v; }
+function maskCurrencyBRL(v) {
+    let value = v.replace(/\D/g, '');
+    if (!value) return '';
+    value = (parseFloat(value) / 100).toFixed(2) + '';
+    value = value.replace('.', ',');
+    value = value.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+    return 'R$ ' + value;
+}
+function attachMask(field, fn){ 
+    if(!field) return; 
+    field.addEventListener('input', (e)=>{ 
+        e.target.value = fn(e.target.value);
+        updatePrintView(e.target); 
+    }); 
+}
+function toggleRequired(el, isReq){ if(!el) return; if(isReq) el.setAttribute('required','required'); else el.removeAttribute('required'); }
+
+function updatePrintView(field) {
+    if (!field) return;
+    const printDiv = field.nextElementSibling;
+    if (printDiv && printDiv.classList.contains('print-only-content')) {
+        printDiv.textContent = field.value;
+    }
+}
+
+function setupSyncListeners(element) {
+    if (!element) return;
+    element.addEventListener('input', () => updatePrintView(element));
+    element.addEventListener('change', () => updatePrintView(element));
+    updatePrintView(element); 
+}
+
+// --- Funções de Lógica do Formulário ---
+function handleTipoDocumento() {
+    const sel = document.getElementById('tipo_documento');
+    if (!sel) return;
+    const value = sel.value;
+    const shouldHide = value === 'Termo de Acordo' || value === 'Termo de atualização de parcelas';
+    const fields = ['vara_group', 'comarca_group', 'num_processo_group'];
+    fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.style.display = shouldHide ? 'none' : 'block';
+        }
+    });
+}
+function handleSucModalidade() {
+  const sel = document.getElementById('suc_modalidade');
+  if (!sel) return;
+  const isParcelado = sel.value === 'Parcelado';
+  const fields = ['suc_entrada_group', 'suc_saldo_group', 'suc_qtd_parc_group', 'suc_valor_parc_group'];
+  fields.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.style.display = isParcelado ? 'block' : 'none';
+      if (!isParcelado) {
+        const input = el.querySelector('input');
+        if (input) {
+            input.value = '';
+            updatePrintView(input);
+        }
+      }
+    }
+  });
+}
+function handlePixFields(formaPagamentoId, pixGroupId, pixInputId) {
+  const sel = document.getElementById(formaPagamentoId);
+  const group = document.getElementById(pixGroupId);
+  const pixInput = document.getElementById(pixInputId);
+  if (!sel || !group || !pixInput) return;
+  const isPix = sel.value === 'Pix';
+  group.style.display = isPix ? 'block' : 'none';
+  toggleRequired(pixInput, isPix);
+}
+
+// --- Lógica de Garantias ---
+function handleGarantiasVeiculo(){ 
+  const sel = document.getElementById('possui_garantias_veiculo');
+  const qtdGroup = document.getElementById('qtd_garantias_veiculo_group');
+  const container = document.getElementById('garantias_veiculo_container');
+  if(!sel || !qtdGroup || !container) return; 
+  const sim = sel.value === 'Sim'; 
+  qtdGroup.style.display = sim ? 'block' : 'none';
+  if (sim) updateGarantiasVeiculoCampos();
+  else container.innerHTML = '';
+}
+function updateGarantiasVeiculoCampos() {
+  const qtdSel = document.getElementById('qtd_garantias_veiculo');
+  const cont = document.getElementById('garantias_veiculo_container');
+  if (!qtdSel || !cont) return;
+  const n = parseInt(qtdSel.value || '1', 10);
+  cont.innerHTML = '';
+  for (let i = 1; i <= n; i++) {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'border-top:1px solid #D1D5DB; padding-top:10px; margin-top:10px;';
+    wrap.innerHTML = `<h4 style='margin:0 0 8px;color:#C81E1E;font-size:13px;'>Veículo ${i}</h4>
+      <div class='grid'>
+        <div class='col-3'><label>Marca</label><input name='garantia_veiculo${i}_marca' class='no-print'/><div class='print-only-content'></div></div>
+        <div class='col-3'><label>Modelo</label><input name='garantia_veiculo${i}_modelo' class='no-print'/><div class='print-only-content'></div></div>
+        <div class='col-2'><label>Cor</label><input name='garantia_veiculo${i}_cor' class='no-print'/><div class='print-only-content'></div></div>
+        <div class='col-2'><label>Placa</label><input name='garantia_veiculo${i}_placa' class='no-print'/><div class='print-only-content'></div></div>
+        <div class='col-2'><label>UF</label>
+          <select name='garantia_veiculo${i}_uf'><option value=''>…</option><option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option><option>SE</option><option>TO</option></select>
+        </div>
+        <div class='col-3'><label>RENAVAM</label><input name='garantia_veiculo${i}_renavam' class='no-print'/><div class='print-only-content'></div></div>
+        <div class='col-3'><label>Chassi</label><input name='garantia_veiculo${i}_chassi' class='no-print' maxlength='17'/><div class='print-only-content'></div></div>
+        <div class='col-3'><label>Ano Fab.</label><input name='garantia_veiculo${i}_ano_fab' type='number'/></div>
+        <div class='col-3'><label>Ano Modelo</label><input name='garantia_veiculo${i}_ano_mod' type='number'/></div>
+      </div>`;
+    cont.appendChild(wrap);
+    wrap.querySelectorAll('.no-print, select').forEach(setupSyncListeners);
+  }
+}
+function handleGarantiasImovel(){ 
+  const sel = document.getElementById('possui_garantias_imovel');
+  const qtdGroup = document.getElementById('qtd_garantias_imovel_group');
+  const container = document.getElementById('garantias_imovel_container');
+  if(!sel || !qtdGroup || !container) return; 
+  const sim = sel.value === 'Sim'; 
+  qtdGroup.style.display = sim ? 'block' : 'none';
+  if (sim) updateGarantiasImovelCampos();
+  else container.innerHTML = '';
+}
+function updateGarantiasImovelCampos() {
+  const qtdSel = document.getElementById('qtd_garantias_imovel');
+  const cont = document.getElementById('garantias_imovel_container');
+  if (!qtdSel || !cont) return;
+  const n = parseInt(qtdSel.value || '1', 10);
+  cont.innerHTML = '';
+  for (let i = 1; i <= n; i++) {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'border-top:1px solid #D1D5DB; padding-top:10px; margin-top:10px;';
+    wrap.innerHTML = `<h4 style='margin:0 0 8px;color:#C81E1E;font-size:13px;'>Imóvel ${i}</h4>
+      <div class='grid'>
+        <div class='col-3'>
+            <label class='req'>Matrícula</label>
+            <input name='garantia_imovel${i}_matricula' class='no-print' required/>
+            <div class="print-only-content"></div>
+        </div>
+        <div class='col-9'>
+          <label class='req'>Descrição da garantia</label>
+          <textarea name='garantia_imovel${i}_descricao' class='no-print' required rows='7'></textarea>
+          <div class='print-only-content'></div>
+        </div>
+      </div>`;
+    cont.appendChild(wrap);
+    wrap.querySelectorAll('.no-print').forEach(setupSyncListeners);
+  }
+}
+function handleOutrasGarantias() {
+    const sel = document.getElementById('possui_outras_garantias');
+    const group = document.getElementById('outras_garantias_descricao_group');
+    if (!sel || !group) return;
+    const isSim = sel.value === 'Sim';
+    group.style.display = isSim ? 'block' : 'none';
+    if (!isSim) {
+        const textarea = group.querySelector('textarea');
+        if (textarea) {
+            textarea.value = '';
+            updatePrintView(textarea);
+        }
+    }
+}
+
+function handleAvalistas(){
+  const sel = document.getElementById('possui_avalistas');
+  const qtdGroup = document.getElementById('qtd_avalistas_group');
+  const container = document.getElementById('avalistas_container');
+  if (!sel || !qtdGroup || !container) return;
+  const sim = sel.value === 'Sim';
+  qtdGroup.style.display = sim ? 'block' : 'none';
+  if (sim) updateAvalistasCampos();
+  else container.innerHTML='';
+}
+function updateAvalistasCampos() {
+  const qtdSel = document.getElementById('qtd_avalistas');
+  const cont = document.getElementById('avalistas_container');
+  if (!qtdSel || !cont) return;
+  const n = parseInt(qtdSel.value || '1', 10);
+  cont.innerHTML = '';
+  for (let i = 1; i <= n; i++) {
+    const wrap = document.createElement('div');
+    wrap.className = 'grid';
+    wrap.style.cssText = 'border-top:1px solid #D1D5DB; padding-top:10px; margin-top:10px;';
+    wrap.innerHTML = `
+      <div class='col-12'><h3 style='margin:0 0 8px;color:#C81E1E;font-size:13px;'>Avalista ${i}</h3></div>
+      <div class='col-6'><label class='req'>Nome do Avalista ${i}</label><input name='avalista${i}_nome' class='no-print' required/><div class="print-only-content"></div></div>
+      <div class='col-6'><label class='req'>CPF/CNPJ</label><input name='avalista${i}_doc' id='avalista${i}_doc' class='no-print' required/><div class="print-only-content"></div></div>
+      <div class='col-12'>
+        <label>Observações</label>
+        <textarea name='avalista${i}_obs' class='no-print' rows='2'></textarea>
+        <div class='print-only-content'></div>
+      </div>`;
+    cont.appendChild(wrap);
+    wrap.querySelectorAll('.no-print, select').forEach(setupSyncListeners);
+    attachMask(wrap.querySelector(`#avalista${i}_doc`), maskCPForCNPJ);
+  }
+}
+function updateContratosCampos() {
+    const qtdSel = document.getElementById('qtd_contratos');
+    const container = document.getElementById('contratos_container');
+    if (!qtdSel || !container) return;
+    const n = parseInt(qtdSel.value, 10);
+    container.innerHTML = '';
+    for (let i = 1; i <= n; i++) {
+        const section = document.createElement('section');
+        section.innerHTML = `
+          <h2>Informações do Acordo (Contrato ${i})</h2>
+          <div class='grid'>
+            <div class='col-3'><label>Nº Contrato</label><input name='contrato${i}_numero' class='no-print'/><div class='print-only-content'></div></div>
+            <div class='col-3'><label>Carteira</label><input name='contrato${i}_carteira' class='no-print'/><div class='print-only-content'></div></div>
+            <div class='col-3'><label class='req'>Saldo Devedor</label><input name='contrato${i}_saldo_devedor' id='contrato${i}_saldo_devedor' class='no-print' required/><div class='print-only-content'></div></div>
+            <div class='col-3'><label class='req'>Modalidade</label>
+              <select name='contrato${i}_acordo_modalidade' id='contrato${i}_acordo_modalidade' required>
+                <option value=''>…</option><option>À vista</option><option>A prazo</option><option>Ambos</option>
+              </select>
+            </div>
+            
+            <div class='col-3' id='contrato${i}_entrada_group' style='display:none;'><label>Entrada</label><input name='contrato${i}_entrada' id='contrato${i}_entrada' class='no-print'/><div class='print-only-content'></div></div>
+            <div class='col-3' id='contrato${i}_data_entrada_group' style='display:none;'><label>Venc. da Entrada</label><input name='contrato${i}_data_entrada' type='date'/></div>
+            <div class='col-3' id='contrato${i}_saldo_parcelado_group' style='display:none;'><label>Saldo Parcelado</label><input name='contrato${i}_saldo_parcelado' id='contrato${i}_saldo_parcelado' class='no-print'/><div class='print-only-content'></div></div>
+            
+            <div class='col-3' id='contrato${i}_valor_total_group'><label class='req'>Valor Total do Acordo</label><input name='contrato${i}_valor_total_acordo' id='contrato${i}_valor_total_acordo' class='no-print'/><div class='print-only-content'></div></div>
+            
+            <div class='col-3' id='contrato${i}_valor_acordo_group' style='display:none;'><label class='req'>Valor (À vista)</label><input name='contrato${i}_valor_acordo' id='contrato${i}_valor_acordo' class='no-print'/><div class='print-only-content'></div></div>
+            
+            <div class='col-3' id='contrato${i}_taxa_juros_group' style='display:none;'><label>Taxa de Juros</label><input name='contrato${i}_taxa_juros' class='no-print'/><div class='print-only-content'></div></div>
+            <div class='col-3' id='contrato${i}_qtd_parcelas_group' style='display:none;'><label class='req'>Qtd. de Parcelas</label><input name='contrato${i}_qtd_parcelas' type='number' min='1'/></div>
+            <div class='col-3' id='contrato${i}_valor_parcela_group' style='display:none;'><label>Valor da Parcela</label><input name='contrato${i}_valor_parcela' id='contrato${i}_valor_parcela' class='no-print'/><div class='print-only-content'></div></div>
+            <div class='col-3' id='contrato${i}_venc_primeira_group' style='display:none;'><label class='req'>Venc. 1ª Parcela</label><input name='contrato${i}_venc_primeira' type='date'/></div>
+            <div class='col-3' id='contrato${i}_fluxo_container' style='display:none;'><label class='req'>Fluxo de Pagamento</label>
+              <select name='contrato${i}_fluxo_pagamento' id='contrato${i}_fluxo_pagamento'>
+                <option value=''>…</option><option>Sequencial</option><option>Escalonado</option>
+              </select>
+            </div>
+            <div class='col-3'><label class='req'>Data de Assinatura</label><input name='contrato${i}_data_assinatura' type='date' required/></div>
+            <div class='col-3'><label class='req'>Forma de Pagamento</label>
+              <select name='contrato${i}_forma_pagamento' id='contrato${i}_forma_pagamento' required>
+                <option value=''>…</option><option>Boleto</option><option>Débito em Conta</option>
+              </select>
+            </div>
+            <div class='col-3'><label>Atualização de parcelas?</label>
+              <select name='contrato${i}_atualizacao_parcelas' id='contrato${i}_atualizacao_parcelas'>
+                <option>Não</option><option>Sim</option>
+              </select>
+            </div>
+            <div class='col-12' id='contrato${i}_fluxo_escalonado_group' style='display:none;'>
+                <label class='req'>Detalhes do Escalonamento</label>
+                <textarea name='contrato${i}_fluxo_escalonado_detalhes' class='no-print'></textarea>
+                <div class="print-only-content"></div>
+            </div>
+            <div class='col-12' id='contrato${i}_acordo_pix_group' style='display:none;'><label class='req'>Chave Pix</label><input name='contrato${i}_acordo_chave_pix' id='contrato${i}_acordo_chave_pix' class='no-print'/><div class='print-only-content'></div></div>
+            <div class='col-12' id='contrato${i}_atualizacao_detalhes_group' style='display:none;'>
+                <label class='req'>Quais parcelas estão sendo atualizadas?</label>
+                <textarea name='contrato${i}_atualizacao_detalhes' class='no-print'></textarea>
+                <div class="print-only-content"></div>
+            </div>
+            <div class='col-12' style='margin-top:10px;'>
+                <label>Observações do Acordo</label>
+                <textarea name='contrato${i}_obs_acordo' class='no-print' rows="3"></textarea>
+                <div class="print-only-content"></div>
+            </div>
+          </div>`;
+        container.appendChild(section);
+        section.querySelectorAll('.no-print, select').forEach(setupSyncListeners);
+        
+        document.getElementById(`contrato${i}_acordo_modalidade`).addEventListener('change', () => handleAcordoModalidade(i));
+        document.getElementById(`contrato${i}_fluxo_pagamento`).addEventListener('change', () => handleFluxoPagamento(i));
+        document.getElementById(`contrato${i}_forma_pagamento`).addEventListener('change', () => handlePixFields(`contrato${i}_forma_pagamento`, `contrato${i}_acordo_pix_group`, `contrato${i}_acordo_chave_pix`));
+        document.getElementById(`contrato${i}_atualizacao_parcelas`).addEventListener('change', () => handleAtualizacaoParcelas(i));
+        
+        ['saldo_devedor','valor_total_acordo','valor_acordo','entrada','saldo_parcelado', 'valor_parcela'].forEach(id => attachMask(document.getElementById(`contrato${i}_${id}`), maskCurrencyBRL));
+        
+        handleAcordoModalidade(i);
+        handleAtualizacaoParcelas(i);
+        handlePixFields(`contrato${i}_forma_pagamento`, `contrato${i}_acordo_pix_group`, `contrato${i}_acordo_chave_pix`);
+    }
+}
+
+
+function handleFluxoPagamento(index){
+  const fluxo = document.getElementById(`contrato${index}_fluxo_pagamento`);
+  const escGroup = document.getElementById(`contrato${index}_fluxo_escalonado_group`);
+  const escDet = escGroup.querySelector('textarea.no-print');
+  if (!fluxo || !escGroup || !escDet) return;
+  const isEsc = fluxo.value === 'Escalonado';
+  escGroup.style.display = isEsc ? 'block' : 'none';
+  toggleRequired(escDet, isEsc);
+}
+function handleAtualizacaoParcelas(index) {
+  const sel = document.getElementById(`contrato${index}_atualizacao_parcelas`);
+  const group = document.getElementById(`contrato${index}_atualizacao_detalhes_group`);
+  const details = group.querySelector('textarea.no-print');
+  if (!sel || !group || !details) return;
+  const isSim = sel.value === 'Sim';
+  group.style.display = isSim ? 'block' : 'none';
+  toggleRequired(details, isSim);
+}
+function handleAcordoModalidade(index){
+  const sel = document.getElementById(`contrato${index}_acordo_modalidade`);
+  if (!sel) return;
+  const aPrazo = sel.value === 'A prazo' || sel.value === 'Ambos';
+  const aVista = sel.value === 'À vista'; // Restrito a apenas À Vista
+  const isAmbos = sel.value === 'Ambos';
+  
+  // Elementos remapeados
+  const elements = {
+    valorTotal: document.getElementById(`contrato${index}_valor_total_group`), 
+    valorAcordo: document.getElementById(`contrato${index}_valor_acordo_group`), // Restaurado
+    entrada: document.getElementById(`contrato${index}_entrada_group`),
+    dataEntrada: document.getElementById(`contrato${index}_data_entrada_group`), 
+    saldoParc: document.getElementById(`contrato${index}_saldo_parcelado_group`),
+    taxa: document.getElementById(`contrato${index}_taxa_juros_group`), 
+    qtdGroup: document.getElementById(`contrato${index}_qtd_parcelas_group`),
+    valorParcela: document.getElementById(`contrato${index}_valor_parcela_group`),
+    fluxoContainer: document.getElementById(`contrato${index}_fluxo_container`), 
+    vencGroup: document.getElementById(`contrato${index}_venc_primeira_group`),
+    escGroup: document.getElementById(`contrato${index}_fluxo_escalonado_group`)
+  };
+  
+  const inputs = {
+    valorTotal: document.getElementById(`contrato${index}_valor_total_acordo`),
+    valorAcordo: document.getElementById(`contrato${index}_valor_acordo`), // Restaurado
+    qtd: document.getElementById(`contrato${index}_qtd_parcelas`),
+    fluxo: document.getElementById(`contrato${index}_fluxo_pagamento`), 
+    venc: document.getElementById(`contrato${index}_venc_primeira`)
+  };
+
+  // Lógica de Visibilidade dos Campos de Valor
+  if (aVista) {
+      if(elements.valorTotal) elements.valorTotal.style.display = 'none';
+      if(elements.valorAcordo) elements.valorAcordo.style.display = 'block';
+      toggleRequired(inputs.valorTotal, false);
+      toggleRequired(inputs.valorAcordo, true);
+  } else {
+      if(elements.valorTotal) elements.valorTotal.style.display = 'block';
+      if(elements.valorAcordo) elements.valorAcordo.style.display = 'none';
+      toggleRequired(inputs.valorTotal, true);
+      toggleRequired(inputs.valorAcordo, false);
+  }
+  
+  // Campos de parcelamento (Entrada, Saldo, Taxa, Qtd, Valor Parcela, Venc, Fluxo)
+  [elements.entrada, elements.dataEntrada, elements.saldoParc, elements.taxa, elements.qtdGroup, elements.valorParcela, elements.fluxoContainer, elements.vencGroup].forEach(el => { 
+      if(el) el.style.display = aPrazo ? 'block' : 'none'; 
+  });
+  
+  toggleRequired(inputs.qtd, aPrazo);
+  toggleRequired(inputs.fluxo, aPrazo);
+  toggleRequired(inputs.venc, aPrazo);
+  
+  if (aPrazo) handleFluxoPagamento(index);
+  else if(elements.escGroup) elements.escGroup.style.display = 'none';
+}
+
+// --- Inicialização ---
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('.no-print, select').forEach(setupSyncListeners);
+  
+  handleTipoDocumento();
+  handleSucModalidade();
+  handlePixFields('suc_forma_pagamento', 'suc_pix_group', 'suc_chave_pix');
+  handleGarantiasVeiculo();
+  handleGarantiasImovel();
+  handleOutrasGarantias();
+  handleAvalistas();
+  updateContratosCampos();
+  
+  document.getElementById('tipo_documento')?.addEventListener('change', handleTipoDocumento);
+  document.getElementById('suc_modalidade')?.addEventListener('change', handleSucModalidade);
+  document.getElementById('suc_forma_pagamento')?.addEventListener('change', () => handlePixFields('suc_forma_pagamento', 'suc_pix_group', 'suc_chave_pix'));
+  document.getElementById('possui_garantias_veiculo')?.addEventListener('change', handleGarantiasVeiculo);
+  document.getElementById('qtd_garantias_veiculo')?.addEventListener('change', updateGarantiasVeiculoCampos);
+  document.getElementById('possui_garantias_imovel')?.addEventListener('change', handleGarantiasImovel);
+  document.getElementById('qtd_garantias_imovel')?.addEventListener('change', updateGarantiasImovelCampos);
+  document.getElementById('possui_outras_garantias')?.addEventListener('change', handleOutrasGarantias);
+  document.getElementById('possui_avalistas')?.addEventListener('change', handleAvalistas);
+  document.getElementById('qtd_avalistas')?.addEventListener('change', updateAvalistasCampos);
+  document.getElementById('qtd_contratos')?.addEventListener('change', updateContratosCampos);
+  
+  attachMask(document.getElementById('cpf_cnpj'), maskCPForCNPJ);
+  attachMask(document.getElementById('telefone'), maskPhone);
+  
+  ['suc_valor', 'suc_valor_entrada', 'suc_valor_parcelado', 'suc_valor_parcela'].forEach(id => {
+      attachMask(document.getElementById(id), maskCurrencyBRL);
+  });
+});
+
+function formToHTML() {
+    let html = '<div style="font-family:Segoe UI,Arial; font-size:14px;">';
+    document.querySelectorAll('#formAcordo section, #contratos_container section, #avalistas_container > div, #garantias_veiculo_container > div, #garantias_imovel_container > div').forEach(sec => {
+        if (sec.style.display === 'none') return;
+        const titleEl = sec.querySelector('h2, h3, h4');
+        if(titleEl) html += `<h3 style="color:#C81E1E; font-size:16px; margin:16px 0 8px 0;">${titleEl.textContent}</h3>`;
+        
+        sec.querySelectorAll('label').forEach(label => {
+            const wrap = label.parentElement;
+            if (!wrap || wrap.style.display === 'none' || label.parentElement.classList.contains('row')) return;
+            
+            let value = '';
+            const control = wrap.querySelector('input:not([type="radio"]), select, textarea');
+            if (!control) {
+                const row = wrap.querySelector('.row');
+                if (row) {
+                    const checked = row.querySelector('input[type="radio"]:checked');
+                    value = checked ? checked.value : '';
+                }
+            } else {
+                value = control.classList.contains('no-print') ? (control.nextElementSibling?.textContent || control.value) : control.value;
+            }
+            html += `<div style="margin-bottom: 4px;"><div style="color:#6B7280;">${label.textContent.trim()}</div><div style="border-bottom:1px solid #DDD; padding-top:2px; word-wrap:break-word;">${value || '&nbsp;'}</div></div>`;
+        });
+    });
+    return html + '</div>';
+}
+
+function downloadDoc() {
+  const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Capa de Acordo</title></head><body>
+<nav class="back-nav no-print">
+  <a href="index.html"><span class="icon">🏠</span>Voltar ao Início</a>
+</nav>`;
+  const footer = `<footer style='text-align:center;margin-top:30px;color:#6B7280;font-size:12px;'>Desenvolvido por <b>JACKSON LIMA | PLANEJAMENTO & THAIS SBEGUE | TREINAMENTO</b></footer></body></html>`;
+  const content = `${header}<h2 style='color:#C81E1E;font-family:Segoe UI,Arial'>CAPA DE ACORDO | BRADESCO</h2>${formToHTML()}${footer}`;
+  const blob = new Blob(['\ufeff', content], {type: 'application/msword'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'Capa_de_Acordo.doc';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function exportJSON() {
+    const data = {};
+    const formData = new FormData(document.getElementById('formAcordo'));
+    for (const [key, value] of formData.entries()) {
+        data[key] = value;
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'capa_de_acordo.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+function importJSON() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = event => {
+            try {
+                const data = JSON.parse(event.target.result);
+                const form = document.getElementById('formAcordo');
+
+                const triggerChange = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (el && value !== undefined) {
+                        el.value = value;
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                };
+                
+                triggerChange('qtd_contratos', data['qtd_contratos']);
+                triggerChange('possui_avalistas', data['possui_avalistas']);
+                if (data['possui_avalistas'] === 'Sim') {
+                    triggerChange('qtd_avalistas', data['qtd_avalistas']);
+                }
+                triggerChange('possui_garantias_veiculo', data['possui_garantias_veiculo']);
+                if (data['possui_garantias_veiculo'] === 'Sim') {
+                    triggerChange('qtd_garantias_veiculo', data['qtd_garantias_veiculo']);
+                }
+                triggerChange('possui_garantias_imovel', data['possui_garantias_imovel']);
+                 if (data['possui_garantias_imovel'] === 'Sim') {
+                    triggerChange('qtd_garantias_imovel', data['qtd_garantias_imovel']);
+                }
+                triggerChange('possui_outras_garantias', data['possui_outras_garantias']);
+
+                setTimeout(() => {
+                    Object.keys(data).forEach(key => {
+                        const el = form.elements[key];
+                        if (el) {
+                           if (el.nodeName === 'INPUT' && el.type === 'radio') {
+                                form.querySelector(`input[name="${key}"][value="${data[key]}"]`).checked = true;
+                            } else if (el.length && el[0]?.type === 'radio') {
+                                 form.querySelector(`input[name="${key}"][value="${data[key]}"]`).checked = true;
+                            } else {
+                               el.value = data[key];
+                            }
+                        }
+                    });
+
+                    document.querySelectorAll('.no-print, select').forEach(field => {
+                        field.dispatchEvent(new Event('input', { bubbles: true }));
+                    });
+                    
+                     alert('Dados importados com sucesso!');
+                }, 200);
+
+            } catch (err) {
+                alert('Erro ao ler o arquivo JSON: ' + err.message);
+            }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
+}
+</script>
+<footer style='text-align:center;margin-top:30px;color:#6B7280;font-size:12px;'>Desenvolvido por <b>JACKSON LIMA | PLANEJAMENTO & THAIS SBEGUE | TREINAMENTO</b></footer>
+</body>
+</html>
