@@ -1,0 +1,24 @@
+{
+  "name": "validador-whatsapp",
+  "version": "1.0.0",
+  "description": "Valida se números de telefone possuem WhatsApp ativo antes do envio de campanhas, reduzindo desperdício de envios.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "whatsapp",
+    "validador",
+    "higienizacao-de-lista"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "qrcode": "^1.5.4",
+    "whatsapp-web.js": "^1.34.1"
+  }
+}

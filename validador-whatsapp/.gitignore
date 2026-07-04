@@ -1,0 +1,24 @@
+# Dependências
+node_modules/
+
+# Sessão do WhatsApp (NUNCA versionar — contém credenciais de autenticação)
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Variáveis de ambiente e segredos
+.env
+.env.*
+
+# Logs e temporários
+*.log
+npm-debug.log*
+tmp/
+temp/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Listas de números (dados pessoais — não versionar)
+*.csv

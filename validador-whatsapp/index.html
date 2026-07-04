@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validador de Lista - WhatsApp</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; max-width: 650px; margin: auto; background-color: #f0f2f5; color: #333; }
+        .card { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); text-align: center; }
+        h2 { color: #075e54; margin-top: 0; }
+
+        /* Área de Login */
+        #login-area { display: block; margin-top: 20px; }
+        #qr-code-img { max-width: 250px; display: none; margin: 20px auto; border: 10px solid white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #075e54; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Área do Sistema (Oculta até logar) */
+        #app-area { display: none; text-align: left; }
+        .status-box { display: flex; justify-content: space-between; margin-top: 25px; gap: 15px; }
+        .status-item { padding: 20px; border-radius: 8px; text-align: center; flex: 1; color: white; font-size: 1.2em; font-weight: bold; }
+        .bg-total { background-color: #4a5568; }
+        .bg-valid { background-color: #128c7e; }
+        .bg-invalid { background-color: #e53e3e; }
+        .input-group { margin: 20px 0; border: 2px dashed #b3c6c4; padding: 20px; border-radius: 6px; text-align: center; background: #fafafa; }
+        button { padding: 14px; cursor: pointer; background-color: #075e54; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 1.1em; width: 100%; transition: background 0.2s; }
+        button:hover { background-color: #0d463e; }
+        button:disabled { background-color: #cbd5e1; cursor: not-allowed; }
+        #btnBaixar { margin-top: 10px; background-color: #4a5568; display: none; }
+        #btnBaixar:hover { background-color: #2d3748; }
+        #log { margin-top: 20px; max-height: 150px; overflow-y: auto; background: #1a202c; color: #aeec97; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 0.9em; display: none; }
+        .log-erro { color: #fc8181; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>Painel de Higienização</h2>
+
+        <div id="login-area">
+            <p id="status-texto">Aguardando geração do QR Code...</p>
+            <div id="loader" class="loader"></div>
+            <img id="qr-code-img" src="" alt="Escaneie o QR Code">
+        </div>
+
+        <div id="app-area">
+            <p style="text-align: center; color: #128c7e; font-weight: bold;">✅ WhatsApp Conectado!</p>
+            <div class="input-group">
+                <input type="file" id="fileInput" accept=".csv,.txt">
+                <p style="font-size: 0.85em; color: #718096; margin: 10px 0 0;">Um número por linha, com DDI e DDD (ex.: 5511999998888)</p>
+            </div>
+            <button id="btnProcessar" onclick="iniciarValidacao()">Validar Lista</button>
+            <button id="btnBaixar" onclick="baixarResultados()">Baixar Resultados (CSV)</button>
+
+            <div class="status-box">
+                <div class="status-item bg-total"><span id="count-total">0</span><br><small>Total</small></div>
+                <div class="status-item bg-valid"><span id="count-valid">0</span><br><small>Válidos</small></div>
+                <div class="status-item bg-invalid"><span id="count-invalid">0</span><br><small>Inválidos</small></div>
+            </div>
+            <div id="log"></div>
+        </div>
+    </div>
+
+    <script>
+        // Funciona tanto servido pelo Express (http://localhost:3000)
+        // quanto aberto direto como arquivo (file://)
+        const API_BASE = location.protocol === 'file:' ? 'http://localhost:3000' : '';
+
+        let resultados = []; // { numero, status } para exportação
+
+        // Checa o status do servidor a cada 2 segundos
+        async function checarStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/api/status`);
+                const data = await response.json();
+
+                if (data.conectado) {
+                    document.getElementById('login-area').style.display = 'none';
+                    document.getElementById('app-area').style.display = 'block';
+                } else {
+                    document.getElementById('login-area').style.display = 'block';
+                    document.getElementById('app-area').style.display = 'none';
+
+                    if (data.qrImage) {
+                        document.getElementById('loader').style.display = 'none';
+                        const img = document.getElementById('qr-code-img');
+                        img.src = data.qrImage;
+                        img.style.display = 'block';
+                        document.getElementById('status-texto').innerText = "Escaneie o QR Code com o aplicativo do WhatsApp.";
+                    } else {
+                        document.getElementById('loader').style.display = 'block';
+                        document.getElementById('qr-code-img').style.display = 'none';
+                        document.getElementById('status-texto').innerText = "Aguardando geração do QR Code...";
+                    }
+                }
+            } catch (error) {
+                document.getElementById('status-texto').innerText = "Servidor offline. Inicie o servidor no terminal (npm start).";
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('qr-code-img').style.display = 'none';
+            }
+        }
+
+        setInterval(checarStatus, 2000);
+        checarStatus();
+
+        // ==========================================
+        // LÓGICA DE VALIDAÇÃO
+        // ==========================================
+        // textContent (e não innerHTML) evita injeção de HTML vindo do CSV
+        function adicionarLog(texto, ehErro = false) {
+            const logDiv = document.getElementById('log');
+            logDiv.style.display = 'block';
+            const linha = document.createElement('div');
+            linha.textContent = texto;
+            if (ehErro) linha.className = 'log-erro';
+            logDiv.appendChild(linha);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function extrairNumeros(text) {
+            return text
+                .split(/\r?\n/)
+                .map(linha => linha.split(/[;,]/)[0].trim()) // 1ª coluna, se houver várias
+                .map(num => num.replace(/\D/g, ''))          // mantém só dígitos
+                .filter(num => num.length >= 8);             // descarta cabeçalho/linhas vazias
+        }
+
+        async function iniciarValidacao() {
+            const fileInput = document.getElementById('fileInput');
+            const btn = document.getElementById('btnProcessar');
+
+            if (fileInput.files.length === 0) {
+                alert("Por favor, selecione um arquivo CSV.");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "Validando...";
+            document.getElementById('log').innerHTML = '';
+            document.getElementById('btnBaixar').style.display = 'none';
+            resultados = [];
+
+            const reader = new FileReader();
+            reader.onload = async function(event) {
+                const numbers = extrairNumeros(event.target.result);
+
+                document.getElementById('count-total').innerText = numbers.length;
+                let validCount = 0;
+                let invalidCount = 0;
+                document.getElementById('count-valid').innerText = 0;
+                document.getElementById('count-invalid').innerText = 0;
+
+                for (let i = 0; i < numbers.length; i++) {
+                    const numero = numbers[i];
+                    adicionarLog(`Consultando: ${numero}...`);
+
+                    try {
+                        const res = await fetch(`${API_BASE}/api/validar`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ numero: numero })
+                        });
+                        const resultado = await res.json();
+
+                        if (!res.ok) {
+                            // Erro do servidor NÃO conta como "inválido" (evita descartar número bom)
+                            adicionarLog(`Erro ao consultar ${numero}: ${resultado.erro || res.status}`, true);
+                            resultados.push({ numero, status: 'erro' });
+                        } else if (resultado.valido) {
+                            validCount++;
+                            document.getElementById('count-valid').innerText = validCount;
+                            resultados.push({ numero, status: 'valido' });
+                        } else {
+                            invalidCount++;
+                            document.getElementById('count-invalid').innerText = invalidCount;
+                            resultados.push({ numero, status: 'invalido' });
+                        }
+                    } catch (e) {
+                        adicionarLog(`Erro de conexão ao consultar ${numero}`, true);
+                        resultados.push({ numero, status: 'erro' });
+                    }
+
+                    // Intervalo aleatório entre consultas para respeitar os limites da plataforma
+                    const delay = Math.floor(Math.random() * (3000 - 1500 + 1)) + 1500;
+                    await new Promise(r => setTimeout(r, delay));
+                }
+
+                btn.disabled = false;
+                btn.innerText = "Validar Lista";
+                adicionarLog("Processo concluído!");
+                if (resultados.length > 0) {
+                    document.getElementById('btnBaixar').style.display = 'block';
+                }
+            };
+            reader.readAsText(fileInput.files[0]);
+        }
+
+        function baixarResultados() {
+            const csv = 'numero,status\n' + resultados.map(r => `${r.numero},${r.status}`).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'resultado_validacao.csv';
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+    </script>
+</body>
+</html>
