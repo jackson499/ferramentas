@@ -71,7 +71,10 @@
     <script>
         // Funciona tanto servido pelo Express (http://localhost:3000)
         // quanto aberto direto como arquivo (file://)
-        const API_BASE = location.protocol === 'file:' ? 'http://localhost:3000' : '';
+        // Aberto via file:// ou GitHub Pages → fala com o servidor local (npm start).
+        // Aberto via localhost:3000 ou túnel → usa a própria origem.
+        const API_BASE = (location.protocol === 'file:' || location.hostname.endsWith('github.io'))
+            ? 'http://localhost:3000' : '';
 
         let resultados = []; // { numero, status } para exportação
         let SENHA = '';      // mantida apenas em memória
