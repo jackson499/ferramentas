@@ -37,7 +37,14 @@
     <div class="card">
         <h2>Painel de Higienização</h2>
 
-        <div id="login-area">
+        <div id="senha-area">
+            <p>Digite a senha de acesso ao painel:</p>
+            <input type="password" id="senhaInput" style="padding: 12px; width: 80%; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 1em;" onkeydown="if(event.key==='Enter') entrar()">
+            <p id="senha-erro" style="color: #e53e3e; display: none;">Senha incorreta.</p>
+            <button onclick="entrar()" style="margin-top: 10px;">Entrar</button>
+        </div>
+
+        <div id="login-area" style="display: none;">
             <p id="status-texto">Aguardando geração do QR Code...</p>
             <div id="loader" class="loader"></div>
             <img id="qr-code-img" src="" alt="Escaneie o QR Code">
@@ -67,11 +74,40 @@
         const API_BASE = location.protocol === 'file:' ? 'http://localhost:3000' : '';
 
         let resultados = []; // { numero, status } para exportação
+        let SENHA = '';      // mantida apenas em memória
+        let monitorando = false;
+
+        function headers() {
+            return { 'Content-Type': 'application/json', 'x-senha': SENHA };
+        }
+
+        async function entrar() {
+            SENHA = document.getElementById('senhaInput').value;
+            const res = await fetch(`${API_BASE}/api/status`, { headers: headers() }).catch(() => null);
+            if (res && res.ok) {
+                document.getElementById('senha-area').style.display = 'none';
+                document.getElementById('login-area').style.display = 'block';
+                if (!monitorando) {
+                    monitorando = true;
+                    setInterval(checarStatus, 2000);
+                }
+                checarStatus();
+            } else {
+                document.getElementById('senha-erro').style.display = 'block';
+            }
+        }
 
         // Checa o status do servidor a cada 2 segundos
         async function checarStatus() {
             try {
-                const response = await fetch(`${API_BASE}/api/status`);
+                const response = await fetch(`${API_BASE}/api/status`, { headers: headers() });
+                if (response.status === 401) {
+                    // Senha mudou/expirou: volta para a tela de senha
+                    document.getElementById('senha-area').style.display = 'block';
+                    document.getElementById('login-area').style.display = 'none';
+                    document.getElementById('app-area').style.display = 'none';
+                    return;
+                }
                 const data = await response.json();
 
                 if (data.conectado) {
@@ -100,8 +136,7 @@
             }
         }
 
-        setInterval(checarStatus, 2000);
-        checarStatus();
+        // O monitoramento só começa após informar a senha (função entrar)
 
         // ==========================================
         // LÓGICA DE VALIDAÇÃO
@@ -157,7 +192,7 @@
                     try {
                         const res = await fetch(`${API_BASE}/api/validar`, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: headers(),
                             body: JSON.stringify({ numero: numero })
                         });
                         const resultado = await res.json();

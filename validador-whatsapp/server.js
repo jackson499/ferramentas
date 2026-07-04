@@ -15,6 +15,22 @@ let whatsappPronto = false;
 let qrCodeBase64 = '';
 let reconectando = false;
 
+// ==========================================
+// PROTEÇÃO POR SENHA
+// Obrigatória ao expor o painel pela web (túnel): sem ela, qualquer
+// pessoa com o link poderia escanear o QR e assumir sua conta.
+// Defina antes de iniciar:  set SENHA_ACESSO=SuaSenhaForte  (Windows)
+// ==========================================
+const SENHA_ACESSO = process.env.SENHA_ACESSO || 'mude-esta-senha';
+if (SENHA_ACESSO === 'mude-esta-senha') {
+    console.warn('AVISO: usando a senha padrão. Defina SENHA_ACESSO antes de expor pela internet!');
+}
+
+app.use('/api', (req, res, next) => {
+    if (req.headers['x-senha'] === SENHA_ACESSO) return next();
+    res.status(401).json({ erro: 'Senha de acesso incorreta.' });
+});
+
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
