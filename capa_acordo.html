@@ -28,7 +28,7 @@
   .req::after{content:" *";color:var(--brand)}
   footer{margin-top:20px;color:var(--muted);font-size:12px}
   hr.separator {border:0; border-top: 1px solid var(--line); margin: 16px 0;}
-  
+
   .print-only-content {display: none; white-space: pre-wrap; word-wrap: break-word; padding: 4px 0; border-bottom: 1px solid #111; min-height: 20px;}
 
   body.print-mode .no-print {display: none;}
@@ -38,7 +38,7 @@
   body.print-mode input.no-print + .print-only-content { padding-top: 8px;}
   body.print-mode .toolbar .print-indicator{display:inline-flex;align-items:center;gap:6px;color:#fff;background:#16a34a;border-color:#16a34a}
   body.print-mode .toolbar .print-indicator::after{content:" Modo impressão ON";font-weight:700}
-  
+
   @media print{
     .toolbar,.no-print,.back-nav{display:none}
     .print-only-content {display: block;}
@@ -62,6 +62,7 @@
 </style>
 </head>
 <body>
+<div class="no-print" style="position:fixed;top:5px;right:12px;font-size:8px;color:#9CA3AF;letter-spacing:.12em;z-index:9999;opacity:.85;pointer-events:none;">DESENVOLVIDO JACKSON GOMES</div>
 <nav class="back-nav no-print">
   <a href="index.html"><span class="icon">🏠</span>Voltar ao Início</a>
 </nav>
@@ -189,7 +190,7 @@
 
 <section>
   <h2>Garantias</h2>
-  
+
   <h3 style='margin-bottom:8px;color:#555;font-size:13px;'>Garantia: Veículo</h3>
   <div class='grid'>
     <div class='col-3'><label>Possui garantia de Veículo?</label>
@@ -221,7 +222,7 @@
     </div>
   </div>
   <div id='garantias_imovel_container' style='margin-top:10px;'></div>
-  
+
   <hr class="separator">
 
   <h3 style='margin-bottom:8px;color:#555;font-size:13px;'>Outras Garantias</h3>
@@ -267,12 +268,12 @@ function maskCurrencyBRL(v) {
     value = value.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
     return 'R$ ' + value;
 }
-function attachMask(field, fn){ 
-    if(!field) return; 
-    field.addEventListener('input', (e)=>{ 
+function attachMask(field, fn){
+    if(!field) return;
+    field.addEventListener('input', (e)=>{
         e.target.value = fn(e.target.value);
-        updatePrintView(e.target); 
-    }); 
+        updatePrintView(e.target);
+    });
 }
 function toggleRequired(el, isReq){ if(!el) return; if(isReq) el.setAttribute('required','required'); else el.removeAttribute('required'); }
 
@@ -288,7 +289,7 @@ function setupSyncListeners(element) {
     if (!element) return;
     element.addEventListener('input', () => updatePrintView(element));
     element.addEventListener('change', () => updatePrintView(element));
-    updatePrintView(element); 
+    updatePrintView(element);
 }
 
 // --- Funções de Lógica do Formulário ---
@@ -335,12 +336,12 @@ function handlePixFields(formaPagamentoId, pixGroupId, pixInputId) {
 }
 
 // --- Lógica de Garantias ---
-function handleGarantiasVeiculo(){ 
+function handleGarantiasVeiculo(){
   const sel = document.getElementById('possui_garantias_veiculo');
   const qtdGroup = document.getElementById('qtd_garantias_veiculo_group');
   const container = document.getElementById('garantias_veiculo_container');
-  if(!sel || !qtdGroup || !container) return; 
-  const sim = sel.value === 'Sim'; 
+  if(!sel || !qtdGroup || !container) return;
+  const sim = sel.value === 'Sim';
   qtdGroup.style.display = sim ? 'block' : 'none';
   if (sim) updateGarantiasVeiculoCampos();
   else container.innerHTML = '';
@@ -372,12 +373,12 @@ function updateGarantiasVeiculoCampos() {
     wrap.querySelectorAll('.no-print, select').forEach(setupSyncListeners);
   }
 }
-function handleGarantiasImovel(){ 
+function handleGarantiasImovel(){
   const sel = document.getElementById('possui_garantias_imovel');
   const qtdGroup = document.getElementById('qtd_garantias_imovel_group');
   const container = document.getElementById('garantias_imovel_container');
-  if(!sel || !qtdGroup || !container) return; 
-  const sim = sel.value === 'Sim'; 
+  if(!sel || !qtdGroup || !container) return;
+  const sim = sel.value === 'Sim';
   qtdGroup.style.display = sim ? 'block' : 'none';
   if (sim) updateGarantiasImovelCampos();
   else container.innerHTML = '';
@@ -476,15 +477,15 @@ function updateContratosCampos() {
                 <option value=''>…</option><option>À vista</option><option>A prazo</option><option>Ambos</option>
               </select>
             </div>
-            
+
             <div class='col-3' id='contrato${i}_entrada_group' style='display:none;'><label>Entrada</label><input name='contrato${i}_entrada' id='contrato${i}_entrada' class='no-print'/><div class='print-only-content'></div></div>
             <div class='col-3' id='contrato${i}_data_entrada_group' style='display:none;'><label>Venc. da Entrada</label><input name='contrato${i}_data_entrada' type='date'/></div>
             <div class='col-3' id='contrato${i}_saldo_parcelado_group' style='display:none;'><label>Saldo Parcelado</label><input name='contrato${i}_saldo_parcelado' id='contrato${i}_saldo_parcelado' class='no-print'/><div class='print-only-content'></div></div>
-            
+
             <div class='col-3' id='contrato${i}_valor_total_group'><label class='req'>Valor Total do Acordo</label><input name='contrato${i}_valor_total_acordo' id='contrato${i}_valor_total_acordo' class='no-print'/><div class='print-only-content'></div></div>
-            
+
             <div class='col-3' id='contrato${i}_valor_acordo_group' style='display:none;'><label class='req'>Valor (À vista)</label><input name='contrato${i}_valor_acordo' id='contrato${i}_valor_acordo' class='no-print'/><div class='print-only-content'></div></div>
-            
+
             <div class='col-3' id='contrato${i}_taxa_juros_group' style='display:none;'><label>Taxa de Juros</label><input name='contrato${i}_taxa_juros' class='no-print'/><div class='print-only-content'></div></div>
             <div class='col-3' id='contrato${i}_qtd_parcelas_group' style='display:none;'><label class='req'>Qtd. de Parcelas</label><input name='contrato${i}_qtd_parcelas' type='number' min='1'/></div>
             <div class='col-3' id='contrato${i}_valor_parcela_group' style='display:none;'><label>Valor da Parcela</label><input name='contrato${i}_valor_parcela' id='contrato${i}_valor_parcela' class='no-print'/><div class='print-only-content'></div></div>
@@ -524,14 +525,14 @@ function updateContratosCampos() {
           </div>`;
         container.appendChild(section);
         section.querySelectorAll('.no-print, select').forEach(setupSyncListeners);
-        
+
         document.getElementById(`contrato${i}_acordo_modalidade`).addEventListener('change', () => handleAcordoModalidade(i));
         document.getElementById(`contrato${i}_fluxo_pagamento`).addEventListener('change', () => handleFluxoPagamento(i));
         document.getElementById(`contrato${i}_forma_pagamento`).addEventListener('change', () => handlePixFields(`contrato${i}_forma_pagamento`, `contrato${i}_acordo_pix_group`, `contrato${i}_acordo_chave_pix`));
         document.getElementById(`contrato${i}_atualizacao_parcelas`).addEventListener('change', () => handleAtualizacaoParcelas(i));
-        
+
         ['saldo_devedor','valor_total_acordo','valor_acordo','entrada','saldo_parcelado', 'valor_parcela'].forEach(id => attachMask(document.getElementById(`contrato${i}_${id}`), maskCurrencyBRL));
-        
+
         handleAcordoModalidade(i);
         handleAtualizacaoParcelas(i);
         handlePixFields(`contrato${i}_forma_pagamento`, `contrato${i}_acordo_pix_group`, `contrato${i}_acordo_chave_pix`);
@@ -563,27 +564,27 @@ function handleAcordoModalidade(index){
   const aPrazo = sel.value === 'A prazo' || sel.value === 'Ambos';
   const aVista = sel.value === 'À vista'; // Restrito a apenas À Vista
   const isAmbos = sel.value === 'Ambos';
-  
+
   // Elementos remapeados
   const elements = {
-    valorTotal: document.getElementById(`contrato${index}_valor_total_group`), 
+    valorTotal: document.getElementById(`contrato${index}_valor_total_group`),
     valorAcordo: document.getElementById(`contrato${index}_valor_acordo_group`), // Restaurado
     entrada: document.getElementById(`contrato${index}_entrada_group`),
-    dataEntrada: document.getElementById(`contrato${index}_data_entrada_group`), 
+    dataEntrada: document.getElementById(`contrato${index}_data_entrada_group`),
     saldoParc: document.getElementById(`contrato${index}_saldo_parcelado_group`),
-    taxa: document.getElementById(`contrato${index}_taxa_juros_group`), 
+    taxa: document.getElementById(`contrato${index}_taxa_juros_group`),
     qtdGroup: document.getElementById(`contrato${index}_qtd_parcelas_group`),
     valorParcela: document.getElementById(`contrato${index}_valor_parcela_group`),
-    fluxoContainer: document.getElementById(`contrato${index}_fluxo_container`), 
+    fluxoContainer: document.getElementById(`contrato${index}_fluxo_container`),
     vencGroup: document.getElementById(`contrato${index}_venc_primeira_group`),
     escGroup: document.getElementById(`contrato${index}_fluxo_escalonado_group`)
   };
-  
+
   const inputs = {
     valorTotal: document.getElementById(`contrato${index}_valor_total_acordo`),
     valorAcordo: document.getElementById(`contrato${index}_valor_acordo`), // Restaurado
     qtd: document.getElementById(`contrato${index}_qtd_parcelas`),
-    fluxo: document.getElementById(`contrato${index}_fluxo_pagamento`), 
+    fluxo: document.getElementById(`contrato${index}_fluxo_pagamento`),
     venc: document.getElementById(`contrato${index}_venc_primeira`)
   };
 
@@ -599,16 +600,16 @@ function handleAcordoModalidade(index){
       toggleRequired(inputs.valorTotal, true);
       toggleRequired(inputs.valorAcordo, false);
   }
-  
+
   // Campos de parcelamento (Entrada, Saldo, Taxa, Qtd, Valor Parcela, Venc, Fluxo)
-  [elements.entrada, elements.dataEntrada, elements.saldoParc, elements.taxa, elements.qtdGroup, elements.valorParcela, elements.fluxoContainer, elements.vencGroup].forEach(el => { 
-      if(el) el.style.display = aPrazo ? 'block' : 'none'; 
+  [elements.entrada, elements.dataEntrada, elements.saldoParc, elements.taxa, elements.qtdGroup, elements.valorParcela, elements.fluxoContainer, elements.vencGroup].forEach(el => {
+      if(el) el.style.display = aPrazo ? 'block' : 'none';
   });
-  
+
   toggleRequired(inputs.qtd, aPrazo);
   toggleRequired(inputs.fluxo, aPrazo);
   toggleRequired(inputs.venc, aPrazo);
-  
+
   if (aPrazo) handleFluxoPagamento(index);
   else if(elements.escGroup) elements.escGroup.style.display = 'none';
 }
@@ -616,7 +617,7 @@ function handleAcordoModalidade(index){
 // --- Inicialização ---
 document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('.no-print, select').forEach(setupSyncListeners);
-  
+
   handleTipoDocumento();
   handleSucModalidade();
   handlePixFields('suc_forma_pagamento', 'suc_pix_group', 'suc_chave_pix');
@@ -625,7 +626,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   handleOutrasGarantias();
   handleAvalistas();
   updateContratosCampos();
-  
+
   document.getElementById('tipo_documento')?.addEventListener('change', handleTipoDocumento);
   document.getElementById('suc_modalidade')?.addEventListener('change', handleSucModalidade);
   document.getElementById('suc_forma_pagamento')?.addEventListener('change', () => handlePixFields('suc_forma_pagamento', 'suc_pix_group', 'suc_chave_pix'));
@@ -637,10 +638,10 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('possui_avalistas')?.addEventListener('change', handleAvalistas);
   document.getElementById('qtd_avalistas')?.addEventListener('change', updateAvalistasCampos);
   document.getElementById('qtd_contratos')?.addEventListener('change', updateContratosCampos);
-  
+
   attachMask(document.getElementById('cpf_cnpj'), maskCPForCNPJ);
   attachMask(document.getElementById('telefone'), maskPhone);
-  
+
   ['suc_valor', 'suc_valor_entrada', 'suc_valor_parcelado', 'suc_valor_parcela'].forEach(id => {
       attachMask(document.getElementById(id), maskCurrencyBRL);
   });
@@ -652,11 +653,11 @@ function formToHTML() {
         if (sec.style.display === 'none') return;
         const titleEl = sec.querySelector('h2, h3, h4');
         if(titleEl) html += `<h3 style="color:#C81E1E; font-size:16px; margin:16px 0 8px 0;">${titleEl.textContent}</h3>`;
-        
+
         sec.querySelectorAll('label').forEach(label => {
             const wrap = label.parentElement;
             if (!wrap || wrap.style.display === 'none' || label.parentElement.classList.contains('row')) return;
-            
+
             let value = '';
             const control = wrap.querySelector('input:not([type="radio"]), select, textarea');
             if (!control) {
@@ -681,7 +682,7 @@ function downloadDoc() {
 </nav>`;
   const footer = `<footer style='text-align:center;margin-top:30px;color:#6B7280;font-size:12px;'>Desenvolvido por <b>JACKSON LIMA | PLANEJAMENTO & THAIS SBEGUE | TREINAMENTO</b></footer></body></html>`;
   const content = `${header}<h2 style='color:#C81E1E;font-family:Segoe UI,Arial'>CAPA DE ACORDO | BRADESCO</h2>${formToHTML()}${footer}`;
-  const blob = new Blob(['\ufeff', content], {type: 'application/msword'});
+  const blob = new Blob(['﻿', content], {type: 'application/msword'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href = url; a.download = 'Capa_de_Acordo.doc';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
@@ -722,7 +723,7 @@ function importJSON() {
                         el.dispatchEvent(new Event('change', { bubbles: true }));
                     }
                 };
-                
+
                 triggerChange('qtd_contratos', data['qtd_contratos']);
                 triggerChange('possui_avalistas', data['possui_avalistas']);
                 if (data['possui_avalistas'] === 'Sim') {
@@ -755,7 +756,7 @@ function importJSON() {
                     document.querySelectorAll('.no-print, select').forEach(field => {
                         field.dispatchEvent(new Event('input', { bubbles: true }));
                     });
-                    
+
                      alert('Dados importados com sucesso!');
                 }, 200);
 
