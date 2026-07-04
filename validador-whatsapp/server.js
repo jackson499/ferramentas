@@ -35,6 +35,9 @@ const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
         handleSIGINT: false,
+        // Em servidores Linux, aponte para o Chromium do sistema:
+        // CHROME_PATH=/snap/bin/chromium
+        executablePath: process.env.CHROME_PATH || undefined,
         args: ['--no-sandbox', '--disable-setuid-sandbox']
     }
 });
@@ -137,7 +140,9 @@ app.post('/api/validar', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-// Escuta apenas em localhost: impede que outras máquinas da rede usem a API
-app.listen(PORT, '127.0.0.1', () => {
-    console.log(`Servidor rodando em http://localhost:${PORT}`);
+// Padrão: escuta só em localhost (uso no PC).
+// Em servidor na nuvem, defina HOST=0.0.0.0 para aceitar acessos externos.
+const HOST = process.env.HOST || '127.0.0.1';
+app.listen(PORT, HOST, () => {
+    console.log(`Servidor rodando em http://${HOST}:${PORT}`);
 });
