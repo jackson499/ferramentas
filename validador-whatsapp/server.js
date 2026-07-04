@@ -228,8 +228,27 @@ app.post('/api/desconectar', async (req, res) => {
     }
 });
 
+// Gera um QR Code novo na hora (reinicia só aquela sessão, se ainda não conectou).
+app.post('/api/atualizar-qr', async (req, res) => {
+    const { sessao } = req.body || {};
+    const s = sessoes.find(x => x.id === sessao);
+    if (!s) return res.status(404).json({ erro: 'Sessao nao encontrada.' });
+    if (s.ready) return res.json({ ok: true, jaConectado: true });
+
+    s.reconectando = true;   // evita que o handler 'disconnected' recrie em paralelo
+    s.qr = '';
+    try { await s.client.destroy(); } catch (e) { /* ignora */ }
+    setTimeout(() => {
+        s.reconectando = false;
+        console.log(`[${s.id}] Gerando novo QR a pedido...`);
+        recriarClient(s);
+    }, 800);
+    res.json({ ok: true });
+});
+
 const PORT = process.env.PORT || 3000;
-const HOST = process.env.HOST || '127.0.0.1';
+// Escuta em todas as interfaces para permitir acesso pela rede local/VPN.
+const HOST = '0.0.0.0';
 app.listen(PORT, HOST, () => {
     console.log(`Servidor rodando em http://${HOST}:${PORT} com ${NUM_SESSOES} sessoes.`);
 });

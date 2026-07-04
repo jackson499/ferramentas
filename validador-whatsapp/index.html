@@ -114,6 +114,7 @@
                         <img id="qr-${i}" alt="QR ${i + 1}">
                         <div class="mini-loader" id="ld-${i}"></div>
                         <div class="state" id="st-${i}">Aguardando QR...</div>
+                        <button id="at-${i}" style="display:none;margin-top:10px;background:#2563eb;font-size:.85em;padding:8px;width:auto;">🔄 Atualizar QR</button>
                         <button id="dc-${i}" style="display:none;margin-top:10px;background:#e53e3e;font-size:.85em;padding:8px;width:auto;">Desconectar</button>`;
                     grid.appendChild(cell);
                 });
@@ -124,6 +125,7 @@
                 const ld = document.getElementById('ld-' + i);
                 const st = document.getElementById('st-' + i);
                 const dc = document.getElementById('dc-' + i);
+                const at = document.getElementById('at-' + i);
                 if (s.conectado) {
                     cell.classList.add('ok');
                     img.style.display = 'none';
@@ -131,9 +133,12 @@
                     st.textContent = '✅ Conectado';
                     dc.style.display = 'inline-block';
                     dc.onclick = () => desconectar(s.id, i + 1);
+                    at.style.display = 'none';
                 } else {
                     cell.classList.remove('ok');
                     dc.style.display = 'none';
+                    at.style.display = 'inline-block';
+                    at.onclick = () => atualizarQR(s.id, i + 1);
                     if (s.qrImage) {
                         img.src = s.qrImage;
                         img.style.display = 'block';
@@ -196,6 +201,28 @@
                 alert('Erro de conexão ao desconectar.');
             } finally {
                 if (dcBtn) { dcBtn.disabled = false; dcBtn.textContent = 'Desconectar'; }
+            }
+        }
+
+        async function atualizarQR(id, numeroLabel) {
+            const btn = document.getElementById('at-' + (numeroLabel - 1));
+            const st = document.getElementById('st-' + (numeroLabel - 1));
+            const img = document.getElementById('qr-' + (numeroLabel - 1));
+            const ld = document.getElementById('ld-' + (numeroLabel - 1));
+            if (btn) { btn.disabled = true; btn.textContent = 'Gerando...'; }
+            if (img) img.style.display = 'none';
+            if (ld) ld.style.display = 'block';
+            if (st) st.textContent = 'Gerando novo QR...';
+            try {
+                await fetch(`${API_BASE}/api/atualizar-qr`, {
+                    method: 'POST', headers: headers(),
+                    body: JSON.stringify({ sessao: id })
+                });
+                // o novo QR aparece sozinho no próximo ciclo de status
+            } catch (e) {
+                if (st) st.textContent = 'Erro ao atualizar. Tente de novo.';
+            } finally {
+                setTimeout(() => { if (btn) { btn.disabled = false; btn.textContent = '🔄 Atualizar QR'; } }, 4000);
             }
         }
 
