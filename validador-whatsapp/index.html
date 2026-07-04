@@ -33,6 +33,7 @@
     </style>
 </head>
 <body>
+    <div style="position:fixed;top:5px;right:12px;font-size:8px;color:#8b9aa8;letter-spacing:.12em;z-index:9999;opacity:.7;pointer-events:none;">DESENVOLVIDO JACKSON GOMES</div>
 
     <div class="card">
         <h2>Painel de Higienização</h2>
@@ -69,12 +70,16 @@
     </div>
 
     <script>
-        // Funciona tanto servido pelo Express (http://localhost:3000)
-        // quanto aberto direto como arquivo (file://)
-        // Aberto via file:// ou GitHub Pages → fala com o servidor local (npm start).
-        // Aberto via localhost:3000 ou túnel → usa a própria origem.
-        const API_BASE = (location.protocol === 'file:' || location.hostname.endsWith('github.io'))
-            ? 'http://localhost:3000' : '';
+        // Servidor online (Oracle Cloud). Se a página for aberta pelo GitHub Pages,
+        // redireciona para o servidor real (o GitHub só hospeda a "casca" estática).
+        const SERVIDOR_ONLINE = 'http://144.22.159.225:3000';
+        if (location.hostname.endsWith('github.io')) {
+            location.replace(SERVIDOR_ONLINE);
+        }
+
+        // Aberto via file:// → fala com o servidor online.
+        // Aberto pelo próprio servidor (Oracle/localhost/túnel) → usa a própria origem.
+        const API_BASE = location.protocol === 'file:' ? SERVIDOR_ONLINE : '';
 
         let resultados = []; // { numero, status } para exportação
         let SENHA = '';      // mantida apenas em memória
