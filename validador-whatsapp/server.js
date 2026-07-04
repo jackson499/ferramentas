@@ -7,142 +7,205 @@ const qrcode = require('qrcode');
 const app = express();
 app.use(express.json());
 app.use(cors());
-
-// Serve o index.html direto do servidor (http://localhost:3000)
 app.use(express.static(path.join(__dirname)));
 
-let whatsappPronto = false;
-let qrCodeBase64 = '';
-let reconectando = false;
+// ==========================================
+// CONFIGURAÇÃO
+// ==========================================
+const NUM_SESSOES = parseInt(process.env.NUM_SESSOES || '4', 10);
+// Ritmo "equilibrado": cada número (sessão) espera entre 3s e 6s
+// entre as próprias consultas. Com 4 sessões em paralelo, o total sai
+// bem mais rápido, mas cada número continua consultando devagar.
+const MIN_INTERVAL_MS = parseInt(process.env.MIN_INTERVAL_MS || '3000', 10);
+const MAX_INTERVAL_MS = parseInt(process.env.MAX_INTERVAL_MS || '6000', 10);
 
-// ==========================================
-// PROTEÇÃO POR SENHA (opcional)
-// Sem SENHA_ACESSO definida, o painel abre direto — uso pessoal.
-// Para exigir senha (recomendado se o link do túnel for compartilhado):
-//   set SENHA_ACESSO=SuaSenhaForte && npm start
-// ==========================================
+// Proteção por senha (opcional). Sem SENHA_ACESSO, o painel abre direto.
 const SENHA_ACESSO = process.env.SENHA_ACESSO || '';
 if (!SENHA_ACESSO) {
-    console.warn('Painel sem senha (SENHA_ACESSO não definida). Não compartilhe o link do túnel.');
+    console.warn('Painel sem senha (SENHA_ACESSO nao definida). Nao compartilhe o link.');
 }
-
 app.use('/api', (req, res, next) => {
     if (!SENHA_ACESSO || req.headers['x-senha'] === SENHA_ACESSO) return next();
     res.status(401).json({ erro: 'Senha de acesso incorreta.' });
 });
 
-const client = new Client({
-    authStrategy: new LocalAuth(),
-    puppeteer: {
-        handleSIGINT: false,
-        // Em servidores Linux, aponte para o Chromium do sistema:
-        // CHROME_PATH=/snap/bin/chromium
-        executablePath: process.env.CHROME_PATH || undefined,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+// ==========================================
+// SESSÕES
+// ==========================================
+const sessoes = [];
+
+function criarSessao(indice) {
+    const id = 'sessao-' + (indice + 1);
+    const s = {
+        id,
+        indice,
+        ready: false,
+        qr: '',
+        inUse: false,       // ocupada respondendo uma consulta agora
+        busyUntil: 0,       // aguardando o intervalo antes da próxima consulta
+        reconectando: false,
+        client: null,
+    };
+
+    const client = new Client({
+        authStrategy: new LocalAuth({ clientId: id }),
+        puppeteer: {
+            handleSIGINT: false,
+            executablePath: process.env.CHROME_PATH || undefined,
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+        }
+    });
+    s.client = client;
+
+    client.on('qr', async (qr) => {
+        try {
+            s.qr = await qrcode.toDataURL(qr);
+            console.log(`[${id}] QR gerado/atualizado.`);
+        } catch (err) {
+            console.error(`[${id}] Erro ao gerar QR:`, err.message);
+        }
+    });
+
+    client.on('authenticated', () => {
+        console.log(`[${id}] Autenticado. Sessao salva.`);
+    });
+
+    client.on('ready', () => {
+        s.ready = true;
+        s.qr = '';
+        s.busyUntil = 0;
+        console.log(`[${id}] Conectado e pronto!`);
+    });
+
+    client.on('auth_failure', (msg) => {
+        s.ready = false;
+        s.qr = '';
+        console.error(`[${id}] Falha de autenticacao:`, msg);
+    });
+
+    client.on('disconnected', async (reason) => {
+        s.ready = false;
+        s.qr = '';
+        console.warn(`[${id}] Desconectado:`, reason);
+        if (s.reconectando) return;
+        s.reconectando = true;
+        try { await client.destroy(); } catch (err) { /* ignora */ }
+        setTimeout(() => {
+            s.reconectando = false;
+            console.log(`[${id}] Reconectando...`);
+            client.initialize().catch(err => console.error(`[${id}] Erro reinit:`, err.message));
+        }, 5000);
+    });
+
+    return s;
+}
+
+// Cria e inicializa as sessões (com pequeno intervalo entre elas para
+// não subir 4 navegadores exatamente no mesmo instante).
+(async () => {
+    for (let i = 0; i < NUM_SESSOES; i++) {
+        const s = criarSessao(i);
+        sessoes.push(s);
+        s.client.initialize().catch(err => console.error(`[${s.id}] Erro ao inicializar:`, err.message));
+        await sleep(1500);
     }
-});
+})();
 
-// Evento: gera o QR Code como imagem base64.
-// A biblioteca emite um novo QR a cada ~30s enquanto não for escaneado,
-// então este handler também cobre a renovação do QR expirado.
-client.on('qr', async (qr) => {
-    try {
-        qrCodeBase64 = await qrcode.toDataURL(qr);
-        console.log('QR Code gerado/atualizado. Abra http://localhost:3000 para escanear.');
-    } catch (err) {
-        console.error('Erro ao gerar imagem do QR Code:', err);
-    }
-});
-
-client.on('authenticated', () => {
-    console.log('Autenticado. Sessão salva em .wwebjs_auth/ (não precisará de QR no próximo início).');
-});
-
-client.on('ready', () => {
-    whatsappPronto = true;
-    qrCodeBase64 = ''; // Limpa a imagem, pois já conectou
-    console.log('WhatsApp conectado e pronto para validar!');
-});
-
-client.on('auth_failure', (msg) => {
-    whatsappPronto = false;
-    qrCodeBase64 = '';
-    console.error('Falha de autenticação:', msg);
-    console.error('Se persistir, apague a pasta .wwebjs_auth/ e escaneie o QR novamente.');
-});
-
-// Evento: desconectado. Destrói a instância antes de reiniciar para
-// evitar processos órfãos do Chromium e loop de reconexão.
-client.on('disconnected', async (reason) => {
-    whatsappPronto = false;
-    qrCodeBase64 = '';
-    console.warn('WhatsApp desconectado:', reason);
-
-    if (reconectando) return;
-    reconectando = true;
-    try {
-        await client.destroy();
-    } catch (err) {
-        console.error('Erro ao encerrar cliente:', err.message);
-    }
-    setTimeout(() => {
-        reconectando = false;
-        console.log('Tentando reconectar...');
-        client.initialize().catch(err => console.error('Erro ao reinicializar:', err.message));
-    }, 5000);
-});
-
-client.initialize().catch(err => console.error('Erro ao inicializar:', err.message));
-
-// Encerramento limpo (handleSIGINT está desativado no puppeteer)
+// Encerramento limpo
 process.on('SIGINT', async () => {
     console.log('\nEncerrando...');
-    try { await client.destroy(); } catch (_) { /* ignora */ }
+    for (const s of sessoes) {
+        try { await s.client.destroy(); } catch (_) { /* ignora */ }
+    }
     process.exit(0);
 });
 
-// Rota de status: o front-end consulta a cada 2 segundos
+// ==========================================
+// SELEÇÃO DE SESSÃO (round-robin + intervalo por sessão)
+// ==========================================
+async function pegarSessao(timeoutMs = 120000) {
+    const inicio = Date.now();
+    while (Date.now() - inicio < timeoutMs) {
+        if (!sessoes.some(s => s.ready)) {
+            throw new Error('Nenhuma sessao conectada.');
+        }
+        const agora = Date.now();
+        let escolhida = null;
+        for (const s of sessoes) {
+            if (s.ready && !s.inUse && agora >= s.busyUntil) {
+                // pega a que está livre há mais tempo (menor busyUntil)
+                if (!escolhida || s.busyUntil < escolhida.busyUntil) escolhida = s;
+            }
+        }
+        if (escolhida) {
+            escolhida.inUse = true;
+            return escolhida;
+        }
+        await sleep(150);
+    }
+    throw new Error('Tempo esgotado aguardando uma sessao livre.');
+}
+
+function liberarSessao(s) {
+    s.busyUntil = Date.now() + rand(MIN_INTERVAL_MS, MAX_INTERVAL_MS);
+    s.inUse = false;
+}
+
+// ==========================================
+// ROTAS
+// ==========================================
 app.get('/api/status', (req, res) => {
+    const sessions = sessoes.map(s => ({
+        id: s.id,
+        conectado: s.ready,
+        qrImage: s.ready ? '' : s.qr
+    }));
+    const conectados = sessoes.filter(s => s.ready).length;
     res.json({
-        conectado: whatsappPronto,
-        qrImage: qrCodeBase64
+        sessions,
+        conectados,
+        total: sessoes.length,
+        algumConectado: conectados > 0,
+        // compatibilidade com o painel antigo:
+        conectado: conectados > 0,
+        qrImage: (sessoes[0] && !sessoes[0].ready) ? sessoes[0].qr : ''
     });
 });
 
-// Rota de validação
 app.post('/api/validar', async (req, res) => {
-    if (!whatsappPronto) {
-        return res.status(503).json({ erro: 'O WhatsApp não está conectado.' });
-    }
-
     let { numero } = req.body;
     if (!numero || typeof numero !== 'string') {
-        return res.status(400).json({ erro: 'Número não fornecido.' });
+        return res.status(400).json({ erro: 'Numero nao fornecido.' });
+    }
+    numero = numero.replace(/\D/g, '');
+    if (numero.length < 8 || numero.length > 15) {
+        return res.status(400).json({ erro: 'Numero em formato invalido.', valido: false });
     }
 
-    numero = numero.replace(/\D/g, '');
-
-    // Valida o formato antes de consultar (evita chamadas inúteis à API)
-    if (numero.length < 8 || numero.length > 15) {
-        return res.status(400).json({ erro: 'Número em formato inválido.', valido: false });
+    let s;
+    try {
+        s = await pegarSessao();
+    } catch (e) {
+        return res.status(503).json({ erro: e.message });
     }
 
     const whatsappId = `${numero}@c.us`;
-
     try {
-        const estaRegistrado = await client.isRegisteredUser(whatsappId);
-        res.json({ valido: estaRegistrado });
+        const registrado = await s.client.isRegisteredUser(whatsappId);
+        liberarSessao(s);
+        res.json({ valido: registrado, sessao: s.id });
     } catch (error) {
-        console.error(`Erro ao consultar ${numero}:`, error.message);
-        // 500 (e não 200) para o front-end distinguir "erro" de "número inválido"
-        res.status(500).json({ erro: 'Erro interno ao consultar número.' });
+        liberarSessao(s);
+        console.error(`[${s.id}] Erro ao consultar ${numero}:`, error.message);
+        res.status(500).json({ erro: 'Erro interno ao consultar numero.' });
     }
 });
 
 const PORT = process.env.PORT || 3000;
-// Padrão: escuta só em localhost (uso no PC).
-// Em servidor na nuvem, defina HOST=0.0.0.0 para aceitar acessos externos.
 const HOST = process.env.HOST || '127.0.0.1';
 app.listen(PORT, HOST, () => {
-    console.log(`Servidor rodando em http://${HOST}:${PORT}`);
+    console.log(`Servidor rodando em http://${HOST}:${PORT} com ${NUM_SESSOES} sessoes.`);
 });

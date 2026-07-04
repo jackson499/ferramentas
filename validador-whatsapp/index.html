@@ -3,33 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Validador de Lista - WhatsApp</title>
+    <title>Validador de Lista - WhatsApp (4 sessões)</title>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; max-width: 650px; margin: auto; background-color: #f0f2f5; color: #333; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; max-width: 760px; margin: auto; background-color: #f0f2f5; color: #333; }
         .card { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); text-align: center; }
         h2 { color: #075e54; margin-top: 0; }
 
-        /* Área de Login */
+        /* Login / QR */
         #login-area { display: block; margin-top: 20px; }
-        #qr-code-img { max-width: 250px; display: none; margin: 20px auto; border: 10px solid white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #075e54; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .sub { color:#667; font-size:.9em; margin-bottom:18px; }
+        .qr-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:16px; }
+        .qr-cell { border:1px solid #e2e8f0; border-radius:10px; padding:14px; background:#fafafa; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:230px; }
+        .qr-cell h3 { margin:0 0 8px; font-size:.95em; color:#334; }
+        .qr-cell img { width:180px; height:180px; display:none; border:6px solid #fff; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.1); }
+        .qr-cell .state { font-size:.85em; color:#718096; margin-top:6px; }
+        .qr-cell.ok { border-color:#25d366; background:#eafff2; }
+        .qr-cell.ok .state { color:#128c7e; font-weight:bold; }
+        .mini-loader { border:3px solid #eee; border-top:3px solid #075e54; border-radius:50%; width:26px; height:26px; animation:spin 1s linear infinite; margin:10px auto; }
+        @keyframes spin { 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
 
-        /* Área do Sistema (Oculta até logar) */
-        #app-area { display: none; text-align: left; }
-        .status-box { display: flex; justify-content: space-between; margin-top: 25px; gap: 15px; }
-        .status-item { padding: 20px; border-radius: 8px; text-align: center; flex: 1; color: white; font-size: 1.2em; font-weight: bold; }
-        .bg-total { background-color: #4a5568; }
-        .bg-valid { background-color: #128c7e; }
-        .bg-invalid { background-color: #e53e3e; }
-        .input-group { margin: 20px 0; border: 2px dashed #b3c6c4; padding: 20px; border-radius: 6px; text-align: center; background: #fafafa; }
-        button { padding: 14px; cursor: pointer; background-color: #075e54; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 1.1em; width: 100%; transition: background 0.2s; }
-        button:hover { background-color: #0d463e; }
-        button:disabled { background-color: #cbd5e1; cursor: not-allowed; }
-        #btnBaixar { margin-top: 10px; background-color: #4a5568; display: none; }
-        #btnBaixar:hover { background-color: #2d3748; }
-        #log { margin-top: 20px; max-height: 150px; overflow-y: auto; background: #1a202c; color: #aeec97; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 0.9em; display: none; }
-        .log-erro { color: #fc8181; }
+        /* App */
+        #app-area { display:none; text-align:left; }
+        .conectados-info { text-align:center; color:#128c7e; font-weight:bold; margin-bottom:6px; }
+        .status-box { display:flex; justify-content:space-between; margin-top:25px; gap:15px; }
+        .status-item { padding:20px; border-radius:8px; text-align:center; flex:1; color:#fff; font-size:1.2em; font-weight:bold; }
+        .bg-total { background:#4a5568; } .bg-valid { background:#128c7e; } .bg-invalid { background:#e53e3e; }
+        .input-group { margin:20px 0; border:2px dashed #b3c6c4; padding:20px; border-radius:6px; text-align:center; background:#fafafa; }
+        button { padding:14px; cursor:pointer; background:#075e54; color:#fff; border:none; border-radius:6px; font-weight:bold; font-size:1.1em; width:100%; transition:background .2s; }
+        button:hover { background:#0d463e; } button:disabled { background:#cbd5e1; cursor:not-allowed; }
+        #btnBaixar { margin-top:10px; background:#4a5568; display:none; } #btnBaixar:hover { background:#2d3748; }
+        #log { margin-top:20px; max-height:170px; overflow-y:auto; background:#1a202c; color:#aeec97; padding:12px; border-radius:6px; font-family:monospace; font-size:.9em; display:none; }
+        .log-erro { color:#fc8181; }
     </style>
 </head>
 <body>
@@ -38,24 +42,23 @@
     <div class="card">
         <h2>Painel de Higienização</h2>
 
-        <div id="senha-area" style="display: none;">
+        <div id="senha-area" style="display:none;">
             <p>Digite a senha de acesso ao painel:</p>
-            <input type="password" id="senhaInput" style="padding: 12px; width: 80%; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 1em;" onkeydown="if(event.key==='Enter') entrar()">
-            <p id="senha-erro" style="color: #e53e3e; display: none;">Senha incorreta.</p>
-            <button onclick="entrar()" style="margin-top: 10px;">Entrar</button>
+            <input type="password" id="senhaInput" style="padding:12px;width:80%;border:1px solid #cbd5e1;border-radius:6px;font-size:1em;" onkeydown="if(event.key==='Enter') entrar()">
+            <p id="senha-erro" style="color:#e53e3e;display:none;">Senha incorreta.</p>
+            <button onclick="entrar()" style="margin-top:10px;">Entrar</button>
         </div>
 
-        <div id="login-area" style="display: none;">
-            <p id="status-texto">Aguardando geração do QR Code...</p>
-            <div id="loader" class="loader"></div>
-            <img id="qr-code-img" src="" alt="Escaneie o QR Code">
+        <div id="login-area" style="display:none;">
+            <p class="sub">Escaneie cada QR Code com um número de WhatsApp diferente. Você pode começar a validar assim que o primeiro conectar.</p>
+            <div class="qr-grid" id="qr-grid"></div>
         </div>
 
         <div id="app-area">
-            <p style="text-align: center; color: #128c7e; font-weight: bold;">✅ WhatsApp Conectado!</p>
+            <p class="conectados-info" id="conectados-info">✅ WhatsApp Conectado!</p>
             <div class="input-group">
                 <input type="file" id="fileInput" accept=".csv,.txt">
-                <p style="font-size: 0.85em; color: #718096; margin: 10px 0 0;">Um número por linha, com DDI e DDD (ex.: 5511999998888)</p>
+                <p style="font-size:.85em;color:#718096;margin:10px 0 0;">Um número por linha, com DDI e DDD (ex.: 5511999998888)</p>
             </div>
             <button id="btnProcessar" onclick="iniciarValidacao()">Validar Lista</button>
             <button id="btnBaixar" onclick="baixarResultados()">Baixar Resultados (CSV)</button>
@@ -70,100 +73,109 @@
     </div>
 
     <script>
-        // Servidor online (Oracle Cloud). Se a página for aberta pelo GitHub Pages,
-        // redireciona para o servidor real (o GitHub só hospeda a "casca" estática).
-        const SERVIDOR_ONLINE = 'http://144.22.159.225:3000';
-        if (location.hostname.endsWith('github.io')) {
-            location.replace(SERVIDOR_ONLINE);
-        }
-
-        // Aberto via file:// → fala com o servidor online.
-        // Aberto pelo próprio servidor (Oracle/localhost/túnel) → usa a própria origem.
-        const API_BASE = location.protocol === 'file:' ? SERVIDOR_ONLINE : '';
-
-        let resultados = []; // { numero, status } para exportação
-        let SENHA = '';      // mantida apenas em memória
+        const API_BASE = '';           // painel é servido pelo próprio servidor local
+        let resultados = [];
+        let SENHA = '';
         let monitorando = false;
+        let ultimoConectados = 0;      // nº de sessões conectadas (para paralelismo)
 
-        function headers() {
-            return { 'Content-Type': 'application/json', 'x-senha': SENHA };
-        }
+        function headers() { return { 'Content-Type': 'application/json', 'x-senha': SENHA }; }
 
         function iniciarMonitoramento() {
             document.getElementById('senha-area').style.display = 'none';
             document.getElementById('login-area').style.display = 'block';
-            if (!monitorando) {
-                monitorando = true;
-                setInterval(checarStatus, 2000);
-            }
+            if (!monitorando) { monitorando = true; setInterval(checarStatus, 2000); }
             checarStatus();
         }
 
         async function entrar() {
             SENHA = document.getElementById('senhaInput').value;
             const res = await fetch(`${API_BASE}/api/status`, { headers: headers() }).catch(() => null);
-            if (res && res.ok) {
-                iniciarMonitoramento();
-            } else {
-                document.getElementById('senha-erro').style.display = 'block';
-            }
+            if (res && res.ok) iniciarMonitoramento();
+            else document.getElementById('senha-erro').style.display = 'block';
         }
 
-        // Ao abrir a página: se o servidor não exigir senha, entra direto
         (async function () {
             const res = await fetch(`${API_BASE}/api/status`, { headers: headers() }).catch(() => null);
-            if (res && res.status === 401) {
-                document.getElementById('senha-area').style.display = 'block';
-            } else {
-                iniciarMonitoramento();
-            }
+            if (res && res.status === 401) document.getElementById('senha-area').style.display = 'block';
+            else iniciarMonitoramento();
         })();
 
-        // Checa o status do servidor a cada 2 segundos
+        function renderSessoes(sessions) {
+            const grid = document.getElementById('qr-grid');
+            // cria as células uma vez
+            if (grid.children.length !== sessions.length) {
+                grid.innerHTML = '';
+                sessions.forEach((s, i) => {
+                    const cell = document.createElement('div');
+                    cell.className = 'qr-cell';
+                    cell.id = 'cell-' + i;
+                    cell.innerHTML = `<h3>Número ${i + 1}</h3>
+                        <img id="qr-${i}" alt="QR ${i + 1}">
+                        <div class="mini-loader" id="ld-${i}"></div>
+                        <div class="state" id="st-${i}">Aguardando QR...</div>`;
+                    grid.appendChild(cell);
+                });
+            }
+            sessions.forEach((s, i) => {
+                const cell = document.getElementById('cell-' + i);
+                const img = document.getElementById('qr-' + i);
+                const ld = document.getElementById('ld-' + i);
+                const st = document.getElementById('st-' + i);
+                if (s.conectado) {
+                    cell.classList.add('ok');
+                    img.style.display = 'none';
+                    ld.style.display = 'none';
+                    st.textContent = '✅ Conectado';
+                } else {
+                    cell.classList.remove('ok');
+                    if (s.qrImage) {
+                        img.src = s.qrImage;
+                        img.style.display = 'block';
+                        ld.style.display = 'none';
+                        st.textContent = 'Escaneie este QR';
+                    } else {
+                        img.style.display = 'none';
+                        ld.style.display = 'block';
+                        st.textContent = 'Aguardando QR...';
+                    }
+                }
+            });
+        }
+
         async function checarStatus() {
             try {
                 const response = await fetch(`${API_BASE}/api/status`, { headers: headers() });
                 if (response.status === 401) {
-                    // Senha mudou/expirou: volta para a tela de senha
                     document.getElementById('senha-area').style.display = 'block';
                     document.getElementById('login-area').style.display = 'none';
                     document.getElementById('app-area').style.display = 'none';
                     return;
                 }
                 const data = await response.json();
+                const sessions = data.sessions || [];
+                ultimoConectados = data.conectados || 0;
 
-                if (data.conectado) {
-                    document.getElementById('login-area').style.display = 'none';
+                renderSessoes(sessions);
+
+                if (data.algumConectado) {
                     document.getElementById('app-area').style.display = 'block';
+                    document.getElementById('conectados-info').textContent =
+                        `✅ ${ultimoConectados} de ${data.total} números conectados`;
                 } else {
-                    document.getElementById('login-area').style.display = 'block';
                     document.getElementById('app-area').style.display = 'none';
-
-                    if (data.qrImage) {
-                        document.getElementById('loader').style.display = 'none';
-                        const img = document.getElementById('qr-code-img');
-                        img.src = data.qrImage;
-                        img.style.display = 'block';
-                        document.getElementById('status-texto').innerText = "Escaneie o QR Code com o aplicativo do WhatsApp.";
-                    } else {
-                        document.getElementById('loader').style.display = 'block';
-                        document.getElementById('qr-code-img').style.display = 'none';
-                        document.getElementById('status-texto').innerText = "Aguardando geração do QR Code...";
-                    }
                 }
+                // mantém a grade de QR visível para reconectar os que faltam
+                document.getElementById('login-area').style.display =
+                    (ultimoConectados < sessions.length) ? 'block' : 'none';
             } catch (error) {
-                document.getElementById('status-texto').innerText = "Servidor offline. Inicie o servidor no terminal (npm start).";
-                document.getElementById('loader').style.display = 'none';
-                document.getElementById('qr-code-img').style.display = 'none';
+                document.getElementById('login-area').style.display = 'block';
+                const grid = document.getElementById('qr-grid');
+                if (grid) grid.innerHTML = '<p style="color:#e53e3e">Servidor offline. Inicie o INICIAR.bat.</p>';
             }
         }
 
-        // O monitoramento só começa após informar a senha (função entrar)
-
-        // ==========================================
-        // LÓGICA DE VALIDAÇÃO
-        // ==========================================
-        // textContent (e não innerHTML) evita injeção de HTML vindo do CSV
+        // ================= VALIDAÇÃO =================
         function adicionarLog(texto, ehErro = false) {
             const logDiv = document.getElementById('log');
             logDiv.style.display = 'block';
@@ -175,79 +187,72 @@
         }
 
         function extrairNumeros(text) {
-            return text
-                .split(/\r?\n/)
-                .map(linha => linha.split(/[;,]/)[0].trim()) // 1ª coluna, se houver várias
-                .map(num => num.replace(/\D/g, ''))          // mantém só dígitos
-                .filter(num => num.length >= 8);             // descarta cabeçalho/linhas vazias
+            return text.split(/\r?\n/)
+                .map(l => l.split(/[;,]/)[0].trim())
+                .map(n => n.replace(/\D/g, ''))
+                .filter(n => n.length >= 8);
         }
 
         async function iniciarValidacao() {
             const fileInput = document.getElementById('fileInput');
             const btn = document.getElementById('btnProcessar');
-
-            if (fileInput.files.length === 0) {
-                alert("Por favor, selecione um arquivo CSV.");
-                return;
-            }
+            if (fileInput.files.length === 0) { alert('Por favor, selecione um arquivo CSV/TXT.'); return; }
 
             btn.disabled = true;
-            btn.innerText = "Validando...";
+            btn.innerText = 'Validando...';
             document.getElementById('log').innerHTML = '';
             document.getElementById('btnBaixar').style.display = 'none';
             resultados = [];
 
             const reader = new FileReader();
-            reader.onload = async function(event) {
+            reader.onload = async function (event) {
                 const numbers = extrairNumeros(event.target.result);
-
                 document.getElementById('count-total').innerText = numbers.length;
-                let validCount = 0;
-                let invalidCount = 0;
+                let validCount = 0, invalidCount = 0;
                 document.getElementById('count-valid').innerText = 0;
                 document.getElementById('count-invalid').innerText = 0;
 
-                for (let i = 0; i < numbers.length; i++) {
-                    const numero = numbers[i];
-                    adicionarLog(`Consultando: ${numero}...`);
+                // paralelismo = número de sessões conectadas (o servidor
+                // distribui e respeita o intervalo de cada número)
+                const concurrency = Math.max(1, ultimoConectados);
+                adicionarLog(`Validando com ${concurrency} número(s) em paralelo...`);
 
-                    try {
-                        const res = await fetch(`${API_BASE}/api/validar`, {
-                            method: 'POST',
-                            headers: headers(),
-                            body: JSON.stringify({ numero: numero })
-                        });
-                        const resultado = await res.json();
-
-                        if (!res.ok) {
-                            // Erro do servidor NÃO conta como "inválido" (evita descartar número bom)
-                            adicionarLog(`Erro ao consultar ${numero}: ${resultado.erro || res.status}`, true);
+                let idx = 0;
+                async function worker() {
+                    while (idx < numbers.length) {
+                        const numero = numbers[idx++];
+                        adicionarLog(`Consultando: ${numero}...`);
+                        try {
+                            const res = await fetch(`${API_BASE}/api/validar`, {
+                                method: 'POST', headers: headers(),
+                                body: JSON.stringify({ numero })
+                            });
+                            const r = await res.json();
+                            if (!res.ok) {
+                                adicionarLog(`Erro ao consultar ${numero}: ${r.erro || res.status}`, true);
+                                resultados.push({ numero, status: 'erro' });
+                            } else if (r.valido) {
+                                validCount++; document.getElementById('count-valid').innerText = validCount;
+                                resultados.push({ numero, status: 'valido' });
+                            } else {
+                                invalidCount++; document.getElementById('count-invalid').innerText = invalidCount;
+                                resultados.push({ numero, status: 'invalido' });
+                            }
+                        } catch (e) {
+                            adicionarLog(`Erro de conexão ao consultar ${numero}`, true);
                             resultados.push({ numero, status: 'erro' });
-                        } else if (resultado.valido) {
-                            validCount++;
-                            document.getElementById('count-valid').innerText = validCount;
-                            resultados.push({ numero, status: 'valido' });
-                        } else {
-                            invalidCount++;
-                            document.getElementById('count-invalid').innerText = invalidCount;
-                            resultados.push({ numero, status: 'invalido' });
                         }
-                    } catch (e) {
-                        adicionarLog(`Erro de conexão ao consultar ${numero}`, true);
-                        resultados.push({ numero, status: 'erro' });
                     }
-
-                    // Intervalo aleatório entre consultas para respeitar os limites da plataforma
-                    const delay = Math.floor(Math.random() * (3000 - 1500 + 1)) + 1500;
-                    await new Promise(r => setTimeout(r, delay));
                 }
+
+                const workers = [];
+                for (let i = 0; i < concurrency; i++) workers.push(worker());
+                await Promise.all(workers);
 
                 btn.disabled = false;
-                btn.innerText = "Validar Lista";
-                adicionarLog("Processo concluído!");
-                if (resultados.length > 0) {
-                    document.getElementById('btnBaixar').style.display = 'block';
-                }
+                btn.innerText = 'Validar Lista';
+                adicionarLog('Processo concluído!');
+                if (resultados.length > 0) document.getElementById('btnBaixar').style.display = 'block';
             };
             reader.readAsText(fileInput.files[0]);
         }
