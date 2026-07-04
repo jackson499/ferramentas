@@ -113,7 +113,8 @@
                     cell.innerHTML = `<h3>Número ${i + 1}</h3>
                         <img id="qr-${i}" alt="QR ${i + 1}">
                         <div class="mini-loader" id="ld-${i}"></div>
-                        <div class="state" id="st-${i}">Aguardando QR...</div>`;
+                        <div class="state" id="st-${i}">Aguardando QR...</div>
+                        <button id="dc-${i}" style="display:none;margin-top:10px;background:#e53e3e;font-size:.85em;padding:8px;width:auto;">Desconectar</button>`;
                     grid.appendChild(cell);
                 });
             }
@@ -122,13 +123,17 @@
                 const img = document.getElementById('qr-' + i);
                 const ld = document.getElementById('ld-' + i);
                 const st = document.getElementById('st-' + i);
+                const dc = document.getElementById('dc-' + i);
                 if (s.conectado) {
                     cell.classList.add('ok');
                     img.style.display = 'none';
                     ld.style.display = 'none';
                     st.textContent = '✅ Conectado';
+                    dc.style.display = 'inline-block';
+                    dc.onclick = () => desconectar(s.id, i + 1);
                 } else {
                     cell.classList.remove('ok');
+                    dc.style.display = 'none';
                     if (s.qrImage) {
                         img.src = s.qrImage;
                         img.style.display = 'block';
@@ -172,6 +177,25 @@
                 document.getElementById('login-area').style.display = 'block';
                 const grid = document.getElementById('qr-grid');
                 if (grid) grid.innerHTML = '<p style="color:#e53e3e">Servidor offline. Inicie o INICIAR.bat.</p>';
+            }
+        }
+
+        async function desconectar(id, numeroLabel) {
+            if (!confirm(`Desconectar o Número ${numeroLabel}? Ele vai deslogar do WhatsApp e mostrar um novo QR Code para conectar outro número.`)) return;
+            const dcBtn = document.getElementById('dc-' + (numeroLabel - 1));
+            if (dcBtn) { dcBtn.disabled = true; dcBtn.textContent = 'Desconectando...'; }
+            try {
+                const res = await fetch(`${API_BASE}/api/desconectar`, {
+                    method: 'POST', headers: headers(),
+                    body: JSON.stringify({ sessao: id })
+                });
+                const r = await res.json().catch(() => ({}));
+                if (!res.ok) alert('Erro ao desconectar: ' + (r.erro || res.status));
+                // o status volta a atualizar sozinho e mostrará o novo QR
+            } catch (e) {
+                alert('Erro de conexão ao desconectar.');
+            } finally {
+                if (dcBtn) { dcBtn.disabled = false; dcBtn.textContent = 'Desconectar'; }
             }
         }
 
