@@ -16,18 +16,18 @@ let qrCodeBase64 = '';
 let reconectando = false;
 
 // ==========================================
-// PROTEÇÃO POR SENHA
-// Obrigatória ao expor o painel pela web (túnel): sem ela, qualquer
-// pessoa com o link poderia escanear o QR e assumir sua conta.
-// Defina antes de iniciar:  set SENHA_ACESSO=SuaSenhaForte  (Windows)
+// PROTEÇÃO POR SENHA (opcional)
+// Sem SENHA_ACESSO definida, o painel abre direto — uso pessoal.
+// Para exigir senha (recomendado se o link do túnel for compartilhado):
+//   set SENHA_ACESSO=SuaSenhaForte && npm start
 // ==========================================
-const SENHA_ACESSO = process.env.SENHA_ACESSO || 'mude-esta-senha';
-if (SENHA_ACESSO === 'mude-esta-senha') {
-    console.warn('AVISO: usando a senha padrão. Defina SENHA_ACESSO antes de expor pela internet!');
+const SENHA_ACESSO = process.env.SENHA_ACESSO || '';
+if (!SENHA_ACESSO) {
+    console.warn('Painel sem senha (SENHA_ACESSO não definida). Não compartilhe o link do túnel.');
 }
 
 app.use('/api', (req, res, next) => {
-    if (req.headers['x-senha'] === SENHA_ACESSO) return next();
+    if (!SENHA_ACESSO || req.headers['x-senha'] === SENHA_ACESSO) return next();
     res.status(401).json({ erro: 'Senha de acesso incorreta.' });
 });
 

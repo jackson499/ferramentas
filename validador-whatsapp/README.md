@@ -31,11 +31,11 @@ npm install
 npm start
 ```
 
-Abra `http://localhost:3000` no navegador, digite a senha de acesso, escaneie o QR Code com o WhatsApp (Aparelhos conectados → Conectar um aparelho) e envie sua lista.
+Abra `http://localhost:3000` no navegador, escaneie o QR Code com o WhatsApp (Aparelhos conectados → Conectar um aparelho) e envie sua lista.
 
-### Senha de acesso
+### Senha de acesso (opcional)
 
-O painel é protegido por senha. Defina uma senha forte antes de iniciar:
+Por padrão o painel abre sem senha (uso pessoal). Para exigir senha — recomendado se o link do túnel puder ser visto por outras pessoas:
 
 ```bash
 # Windows (cmd)
@@ -48,26 +48,24 @@ $env:SENHA_ACESSO="SuaSenhaForte"; npm start
 SENHA_ACESSO=SuaSenhaForte npm start
 ```
 
-Sem definir, a senha padrão é `mude-esta-senha` (use apenas em testes locais).
-
 ## Acesso pela web (grátis, via túnel)
 
 Para usar o painel de qualquer lugar sem pagar hospedagem, use o Cloudflare Tunnel — o servidor continua rodando no seu PC e um link público temporário é criado:
 
 1. Baixe o `cloudflared` em <https://github.com/cloudflare/cloudflared/releases> (arquivo `cloudflared-windows-amd64.exe`).
-2. Inicie o servidor com uma senha forte (veja acima).
+2. Inicie o servidor (`npm start`).
 3. Em outro terminal, rode:
 
 ```bash
 cloudflared-windows-amd64.exe tunnel --url http://localhost:3000
 ```
 
-4. O terminal mostrará um link `https://xxxxx.trycloudflare.com` — acesse-o de qualquer dispositivo e digite a senha.
+4. O terminal mostrará um link `https://xxxxx.trycloudflare.com` — acesse-o de qualquer dispositivo.
 
 **Atenção:**
 
 - O link só funciona enquanto o seu PC estiver ligado com o servidor e o túnel rodando, e muda a cada reinício do túnel (para link fixo, é preciso conta gratuita na Cloudflare com domínio próprio).
-- **Nunca exponha o painel sem definir `SENHA_ACESSO`**: quem acessar a tela do QR pode escanear e assumir sua conta do WhatsApp.
+- **Não compartilhe o link do túnel**: quem acessar a tela do QR pode escanear e assumir sua conta do WhatsApp. Se o link puder vazar, defina `SENHA_ACESSO`.
 
 Formato do arquivo (um número por linha, com DDI e DDD):
 
