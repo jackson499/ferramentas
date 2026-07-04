@@ -15,15 +15,19 @@
     font-family:"Segoe UI", system-ui, sans-serif;
     min-height:100vh; display:flex; flex-direction:column;
   }
+  .assinatura {
+    position:fixed; top:5px; right:12px; font-size:8px; color:var(--mut);
+    letter-spacing:.12em; z-index:9999; opacity:.7; pointer-events:none;
+  }
   .navbar {
     display:flex; gap:0; background:#0b0e12;
     border-bottom:2px solid var(--line);
-    position:sticky; top:0; z-index:100;
+    position:sticky; top:0; z-index:100; flex-wrap:wrap;
   }
   .navbar a {
     flex:1; text-decoration:none; color:var(--mut);
-    padding:14px 20px; font-size:.92rem; font-weight:600;
-    text-align:center; transition:all .15s; position:relative;
+    padding:14px 18px; font-size:.9rem; font-weight:600;
+    text-align:center; transition:all .15s; position:relative; white-space:nowrap;
   }
   .navbar a:hover { color:var(--txt); background:var(--panel); }
   .navbar a.active { color:var(--acc); background:var(--panel); }
@@ -34,65 +38,118 @@
   .navbar .icon { margin-right:8px; }
 
   .hero {
-    flex:1; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; padding:60px 20px; text-align:center;
+    text-align:center; padding:48px 20px 8px;
   }
-  .hero h1 { font-size:2.2rem; margin-bottom:12px; }
+  .hero h1 { font-size:2.1rem; margin-bottom:10px; }
   .hero h1 span { color:var(--acc); }
-  .hero p { color:var(--mut); font-size:1rem; margin-bottom:48px; max-width:500px; }
+  .hero p { color:var(--mut); font-size:.95rem; max-width:520px; margin:0 auto; }
 
-  .cards { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; }
+  .wrap { flex:1; max-width:1040px; width:100%; margin:0 auto; padding:24px 20px 60px; }
+
+  .group { margin-top:36px; }
+  .group-title {
+    display:flex; align-items:center; gap:10px;
+    font-size:.8rem; text-transform:uppercase; letter-spacing:.12em;
+    color:var(--mut); margin-bottom:16px;
+  }
+  .group-title::after { content:''; flex:1; height:1px; background:var(--line); }
+
+  .cards { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:18px; }
   .card {
     background:var(--panel); border:1px solid var(--line); border-radius:14px;
-    padding:32px 28px; width:260px; text-decoration:none; color:var(--txt);
-    transition:border-color .2s, transform .2s;
+    padding:26px 24px; text-decoration:none; color:var(--txt);
+    transition:border-color .2s, transform .2s; display:flex; flex-direction:column;
   }
   .card:hover { border-color:var(--acc); transform:translateY(-4px); }
-  .card .emoji { font-size:2.2rem; margin-bottom:14px; display:block; }
-  .card h2 { font-size:1.1rem; margin-bottom:8px; }
-  .card p { color:var(--mut); font-size:.82rem; line-height:1.5; }
+  .card .emoji { font-size:2rem; margin-bottom:12px; display:block; }
+  .card h2 { font-size:1.05rem; margin-bottom:8px; }
+  .card p { color:var(--mut); font-size:.82rem; line-height:1.5; flex:1; }
+  .badge {
+    display:inline-block; margin-top:14px; align-self:flex-start;
+    font-size:.68rem; font-weight:600; letter-spacing:.04em;
+    padding:3px 9px; border-radius:20px;
+  }
+  .badge.local { background:rgba(53,196,162,.12); color:var(--acc); }
+  .badge.online { background:rgba(91,168,247,.14); color:#5ba8f7; }
+
+  footer { text-align:center; color:var(--mut); font-size:.75rem; padding:20px; border-top:1px solid var(--line); }
 </style>
 </head>
 <body>
+<div class="assinatura">DESENVOLVIDO JACKSON GOMES</div>
+
 <nav class="navbar">
   <a href="index.html" class="active"><span class="icon">🏠</span>Início</a>
   <a href="conversor_audio.html"><span class="icon">🎵</span>Conversor de Áudio</a>
   <a href="compilador_abas.html"><span class="icon">📊</span>Compilador (Todas Abas)</a>
   <a href="compilador_simples.html"><span class="icon">📋</span>Compilador (Simples)</a>
-  <a href="validador-whatsapp/index.html"><span class="icon">✅</span>Validador WhatsApp</a>
+  <a href="capa_acordo.html"><span class="icon">📝</span>Capa de Acordo</a>
+  <a href="http://144.22.159.225:3000"><span class="icon">✅</span>Validador WhatsApp</a>
 </nav>
 
 <div class="hero">
   <h1>Ferramentas <span>Jackson</span></h1>
-  <p>Utilitários que rodam 100% no navegador. Nenhum dado é enviado para servidores.</p>
-
-  <div class="cards">
-    <a class="card" href="conversor_audio.html">
-      <span class="emoji">🎵</span>
-      <h2>Conversor de Áudio</h2>
-      <p>Converta entre MP3, Opus, M4A, OGG e WAV direto no navegador com FFmpeg.</p>
-    </a>
-    <a class="card" href="compilador_abas.html">
-      <span class="emoji">📊</span>
-      <h2>Compilador Excel (Todas Abas)</h2>
-      <p>Une múltiplos arquivos Excel/CSV compilando todas as abas em um único arquivo.</p>
-    </a>
-    <a class="card" href="compilador_simples.html">
-      <span class="emoji">📋</span>
-      <h2>Compilador Excel (Simples)</h2>
-      <p>Une múltiplos arquivos Excel/CSV usando apenas a primeira aba de cada arquivo.</p>
-    </a>
-    <a class="card" href="capa_acordo.html">
-      <span class="emoji">📝</span>
-      <h2>Capa de Acordo</h2>
-      <p>Formulário preenchível para Capa de Acordo Bradesco com exportação para PDF, Word e JSON.</p>
-    </a>
-    <a class="card" href="validador-whatsapp/index.html">
-      <span class="emoji">✅</span>
-      <h2>Validador de WhatsApp</h2>
-      <p>Verifica quais números da sua lista têm WhatsApp ativo. Requer o servidor local rodando (npm start na pasta validador-whatsapp).</p>
-    </a>
-  </div>
+  <p>Utilitários para o dia a dia. As ferramentas de arquivo rodam 100% no seu navegador — nenhum dado é enviado para servidores.</p>
 </div>
+
+<div class="wrap">
+
+  <div class="group">
+    <div class="group-title">📊 Planilhas &amp; Excel</div>
+    <div class="cards">
+      <a class="card" href="compilador_abas.html">
+        <span class="emoji">📊</span>
+        <h2>Compilador (Todas as Abas)</h2>
+        <p>Une múltiplos arquivos Excel/CSV compilando todas as abas em um único documento.</p>
+        <span class="badge local">No navegador</span>
+      </a>
+      <a class="card" href="compilador_simples.html">
+        <span class="emoji">📋</span>
+        <h2>Compilador (Simples)</h2>
+        <p>Une múltiplos arquivos Excel/CSV usando apenas a primeira aba de cada arquivo.</p>
+        <span class="badge local">No navegador</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="group-title">📝 Documentos &amp; Jurídico</div>
+    <div class="cards">
+      <a class="card" href="capa_acordo.html">
+        <span class="emoji">📝</span>
+        <h2>Capa de Acordo</h2>
+        <p>Formulário preenchível para Capa de Acordo Bradesco, com exportação para PDF, Word e JSON.</p>
+        <span class="badge local">No navegador</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="group-title">🎵 Mídia</div>
+    <div class="cards">
+      <a class="card" href="conversor_audio.html">
+        <span class="emoji">🎵</span>
+        <h2>Conversor de Áudio</h2>
+        <p>Converta entre MP3, Opus, M4A, OGG e WAV direto no navegador com FFmpeg.</p>
+        <span class="badge local">No navegador</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="group-title">✅ WhatsApp</div>
+    <div class="cards">
+      <a class="card" href="http://144.22.159.225:3000">
+        <span class="emoji">✅</span>
+        <h2>Validador de WhatsApp</h2>
+        <p>Verifica quais números da sua lista têm WhatsApp ativo. Rodando online 24h na nuvem.</p>
+        <span class="badge online">Servidor online</span>
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<footer>Desenvolvido por Jackson Gomes</footer>
 </body>
 </html>

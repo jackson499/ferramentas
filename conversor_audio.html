@@ -16,6 +16,10 @@
     font-family:"Segoe UI", system-ui, sans-serif;
     min-height:100vh;
   }
+  .assinatura {
+    position:fixed; top:5px; right:12px; font-size:8px; color:var(--mut);
+    letter-spacing:.12em; z-index:9999; opacity:.7; pointer-events:none;
+  }
   .navbar {
     display:flex; gap:0; background:#0b0e12;
     border-bottom:2px solid var(--line);
@@ -95,6 +99,7 @@
 </style>
 </head>
 <body>
+<div class="assinatura">DESENVOLVIDO JACKSON GOMES</div>
 <nav class="navbar">
   <a href="index.html"><span class="icon">🏠</span>Voltar ao Início</a>
 </nav>
