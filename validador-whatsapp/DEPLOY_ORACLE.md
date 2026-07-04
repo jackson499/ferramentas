@@ -13,7 +13,7 @@ Guia para hospedar o Validador de WhatsApp gratuitamente em uma VM do Oracle Clo
 2. Nome: `validador-whatsapp`.
 3. Em **Image and shape**:
    - Image: **Ubuntu 22.04** (Canonical Ubuntu).
-   - Shape: **Ampere / VM.Standard.A1.Flex** — configure **2 OCPUs e 8 GB de RAM** (dentro do limite Always Free, que é 4 OCPUs / 24 GB no total).
+   - Shape: **Ampere / VM.Standard.A1.Flex** — configure **2 OCPUs e 8 GB de RAM** (dentro do limite Always Free, que desde jun/2026 é 2 OCPUs / 12 GB no total).
 4. Em **Add SSH keys**: escolha "Generate a key pair for me" e **baixe a chave privada** (guarde o arquivo `.key`).
 5. Clique em **Create** e aguarde ficar "Running". Anote o **Public IP address**.
 
