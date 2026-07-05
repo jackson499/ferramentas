@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marca D'água PDF — Ferramentas Jackson</title>
+<style>
+  :root{--bg:#101418;--panel:#1a2129;--panel2:#212a34;--line:#2e3a47;--txt:#e8edf2;--mut:#8b9aa8;--acc:#35c4a2;--danger:#e5484d}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;display:flex;flex-direction:column}
+  .assinatura{position:fixed;top:6px;right:12px;font-size:8px;color:var(--mut);letter-spacing:.12em;z-index:9999;opacity:.7;pointer-events:none}
+  .navbar{background:#0b0e12;border-bottom:2px solid var(--line);padding:12px 18px;position:sticky;top:0;z-index:100}
+  .navbar a{color:var(--mut);text-decoration:none;font-weight:600;font-size:.92rem;display:inline-flex;align-items:center;gap:8px}
+  .navbar a:hover{color:var(--acc)}
+  .wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:40px 20px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 12px 30px rgba(0,0,0,.25);padding:32px;width:100%;max-width:520px;text-align:center}
+  .card h1{font-size:1.5rem;margin-bottom:8px}
+  .card .desc{color:var(--mut);font-size:.92rem;margin-bottom:22px}
+  .btn{background:var(--acc);color:#08110d;border:none;border-radius:10px;padding:12px 22px;font-weight:700;font-size:1rem;cursor:pointer;transition:filter .15s,transform .1s;margin-top:14px;width:100%}
+  .btn:hover:not(:disabled){filter:brightness(1.08)} .btn:active{transform:translateY(1px)}
+  .btn:disabled{background:#3a4652;color:#8b9aa8;cursor:not-allowed}
+  .btn-file{background:var(--panel2);color:var(--txt);border:1px solid var(--line);width:auto;display:inline-block;margin-top:0}
+  input[type=file]{display:none}
+  input[type=text]{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);color:var(--txt);font-size:1rem;margin-top:8px}
+  input[type=text]::placeholder{color:#6b7a8d}
+  .input-group{margin-top:20px;text-align:left}
+  .input-group label{font-weight:600;font-size:.88rem;color:var(--mut)}
+  .file-name{margin-top:14px;font-weight:600;color:var(--acc)}
+  footer{text-align:center;color:var(--mut);font-size:.78rem;padding:22px;border-top:1px solid var(--line)}
+  footer b{color:var(--txt)}
+</style>
+</head>
+<body>
+<div class="assinatura">DESENVOLVIDO JACKSON GOMES</div>
+<nav class="navbar"><a href="index.html">🏠 Voltar ao Início</a></nav>
+
+<div class="wrap">
+  <div class="card">
+    <h1>💧 Marca D'água</h1>
+    <p class="desc">Adicione um texto de segurança em todas as páginas do seu PDF.</p>
+
+    <label class="btn btn-file">Carregar PDF
+      <input type="file" id="file-input" accept="application/pdf">
+    </label>
+
+    <div class="file-name" id="file-name"></div>
+
+    <div class="input-group">
+      <label>Texto da marca d'água:</label>
+      <input type="text" id="watermark-input" placeholder="Ex: CONFIDENCIAL" disabled>
+    </div>
+
+    <button id="watermark-btn" class="btn" disabled>Aplicar e Baixar PDF</button>
+  </div>
+</div>
+
+<footer>Desenvolvido por <b>Jackson Gomes</b></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script>
+    let pdfFile = null;
+    const fileInput = document.getElementById('file-input');
+    const fileName = document.getElementById('file-name');
+    const watermarkInput = document.getElementById('watermark-input');
+    const watermarkBtn = document.getElementById('watermark-btn');
+
+    fileInput.addEventListener('change', (e) => {
+        pdfFile = e.target.files[0];
+        if (pdfFile) {
+            fileName.textContent = pdfFile.name;
+            watermarkInput.disabled = false;
+            watermarkBtn.disabled = false;
+        }
+    });
+
+    watermarkBtn.addEventListener('click', async () => {
+        const text = watermarkInput.value;
+        if(!text) return alert("Digite o texto da marca d'água.");
+        watermarkBtn.disabled = true;
+        watermarkBtn.textContent = 'Processando...';
+        try {
+            const { PDFDocument, rgb, degrees, StandardFonts } = PDFLib;
+            const pdf = await PDFDocument.load(await pdfFile.arrayBuffer());
+            const pages = pdf.getPages();
+            const helveticaFont = await pdf.embedFont(StandardFonts.HelveticaBold);
+            pages.forEach(page => {
+                const { width, height } = page.getSize();
+                page.drawText(text, {
+                    x: width / 2 - (text.length * 15),
+                    y: height / 2 - 50,
+                    size: 60,
+                    font: helveticaFont,
+                    color: rgb(0.7, 0.7, 0.7),
+                    opacity: 0.4,
+                    rotate: degrees(45),
+                });
+            });
+            const pdfBytes = await pdf.save();
+            const blob = new Blob([pdfBytes], { type: "application/pdf" });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = "PDF_Marca_Dagua.pdf";
+            link.click();
+        } catch (error) {
+            alert("Erro ao aplicar marca d'água.");
+        } finally {
+            watermarkBtn.disabled = false;
+            watermarkBtn.textContent = 'Aplicar e Baixar PDF';
+        }
+    });
+</script>
+</body>
+</html>

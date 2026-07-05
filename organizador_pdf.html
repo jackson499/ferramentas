@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Organizador de PDF — Ferramentas Jackson</title>
+<style>
+  :root{--bg:#101418;--panel:#1a2129;--panel2:#212a34;--line:#2e3a47;--txt:#e8edf2;--mut:#8b9aa8;--acc:#35c4a2;--acc2:#2aa489;--danger:#e5484d;--danger-bg:#2a1618;--danger-border:#5a2a2d}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--txt);line-height:1.5;min-height:100vh;display:flex;flex-direction:column}
+  .assinatura{position:fixed;top:6px;right:12px;font-size:8px;color:var(--mut);letter-spacing:.12em;z-index:9999;opacity:.7;pointer-events:none}
+  .navbar{background:#0b0e12;border-bottom:2px solid var(--line);padding:12px 18px;position:sticky;top:0;z-index:100}
+  .navbar a{color:var(--mut);text-decoration:none;font-weight:600;font-size:.92rem;display:inline-flex;align-items:center;gap:8px}
+  .navbar a:hover{color:var(--acc)}
+  .container{max-width:1200px;margin:0 auto;flex:1;width:100%;padding:40px 20px}
+  .header{text-align:center;margin-bottom:28px}
+  .header h1{font-size:2rem;font-weight:700;margin-bottom:8px}
+  .header p{font-size:1rem;color:var(--mut);max-width:620px;margin:0 auto}
+  .controls{display:flex;justify-content:center;align-items:center;gap:1rem;margin-bottom:1.5rem;background:var(--panel);padding:1.2rem;border-radius:14px;border:1px solid var(--line);flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;background:var(--acc);color:#08110d;border:none;padding:.7rem 1.4rem;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;transition:filter .2s,transform .1s;text-decoration:none}
+  .btn:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px)}
+  .btn:disabled{background:#3a4652;color:#8b9aa8;cursor:not-allowed}
+  .btn.upload-btn{background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
+  input[type=file]{display:none}
+  #loading-overlay{display:none;position:fixed;inset:0;background:rgba(10,14,18,.82);backdrop-filter:blur(4px);z-index:1000;justify-content:center;align-items:center;flex-direction:column}
+  .spinner{border:4px solid #2b3742;border-top:4px solid var(--acc);border-radius:50%;width:50px;height:50px;animation:spin 1s linear infinite;margin-bottom:1rem}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #pdf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1.4rem;padding:1.6rem;background:var(--panel);border-radius:14px;border:2px dashed var(--line);min-height:400px}
+  #pdf-grid:empty{display:flex;align-items:center;justify-content:center}
+  #pdf-grid:empty::before{content:"Nenhum PDF carregado. Importe um arquivo para começar.";color:var(--mut);font-size:1.05rem}
+  .page-item{position:relative;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:1rem;cursor:grab;display:flex;flex-direction:column;align-items:center;transition:all .3s ease}
+  .page-item:hover{border-color:var(--acc)}
+  .page-item:active{cursor:grabbing}
+  .sortable-ghost{opacity:.4;background:#161d24}
+  .sortable-drag{box-shadow:0 12px 30px rgba(0,0,0,.4)}
+  .canvas-wrapper{width:100%;height:280px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:1rem;background:#0f151b;border-radius:8px;border:1px solid var(--line)}
+  canvas{max-width:100%;max-height:100%;transition:transform .3s cubic-bezier(.4,0,.2,1);box-shadow:0 2px 8px rgba(0,0,0,.4)}
+  .page-number{position:absolute;top:.5rem;left:.5rem;background:var(--acc);color:#08110d;font-size:.75rem;font-weight:700;padding:.2rem .5rem;border-radius:6px;z-index:10}
+  .action-buttons{width:100%;display:flex;gap:.5rem}
+  .action-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:.25rem;padding:.5rem;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .2s;border:1px solid transparent}
+  .action-btn svg{width:14px;height:14px}
+  .rotate-btn{background:var(--panel);color:var(--txt);border-color:var(--line)}
+  .rotate-btn:hover{background:#2b3742}
+  .remove-btn{background:var(--danger-bg);color:var(--danger);border-color:var(--danger-border)}
+  .remove-btn:hover{background:#3a1c1f;border-color:var(--danger)}
+  footer{text-align:center;color:var(--mut);font-size:.78rem;padding:22px;border-top:1px solid var(--line)}
+  footer b{color:var(--txt)}
+</style>
+</head>
+<body>
+<div class="assinatura">DESENVOLVIDO JACKSON GOMES</div>
+<nav class="navbar"><a href="index.html">🏠 Voltar ao Início</a></nav>
+
+<div class="container">
+  <div class="header">
+    <h1>🗂️ Organizador de PDF</h1>
+    <p>Reordene (arrastando), gire, remova páginas e salve seus documentos PDF direto no navegador. Rápido, seguro e sem envio para servidores.</p>
+  </div>
+
+  <div class="controls">
+    <label class="btn upload-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+      Importar Arquivo
+      <input type="file" id="file-input" accept="application/pdf">
+    </label>
+    <button id="download-btn" class="btn" disabled>
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+      Baixar PDF Organizado
+    </button>
+  </div>
+
+  <div id="pdf-grid"></div>
+</div>
+
+<footer>Desenvolvido por <b>Jackson Gomes</b></footer>
+
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <h2 style="font-weight:600">Processando documento...</h2>
+  <p style="color:var(--mut);margin-top:.5rem">Isso pode levar alguns segundos dependendo do tamanho.</p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+<script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+    const fileInput = document.getElementById('file-input');
+    const grid = document.getElementById('pdf-grid');
+    const downloadBtn = document.getElementById('download-btn');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    let originalPdfBytes = null;
+
+    new Sortable(grid, { animation: 200, ghostClass: 'sortable-ghost', dragClass: 'sortable-drag', easing: "cubic-bezier(1, 0, 0, 1)" });
+
+    function showLoading(){ loadingOverlay.style.display = 'flex'; }
+    function hideLoading(){ loadingOverlay.style.display = 'none'; }
+
+    fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        showLoading();
+        grid.innerHTML = '';
+        grid.style.display = 'grid';
+        downloadBtn.disabled = true;
+        setTimeout(async () => {
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                originalPdfBytes = arrayBuffer;
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    await createPageThumbnail(page, i);
+                }
+                downloadBtn.disabled = false;
+            } catch (error) {
+                console.error("Erro ao carregar o PDF:", error);
+                alert("Não foi possível ler o arquivo PDF. Ele pode estar corrompido ou protegido por senha.");
+            } finally {
+                hideLoading();
+                fileInput.value = '';
+            }
+        }, 100);
+    });
+
+    async function createPageThumbnail(page, pageNum) {
+        const viewport = page.getViewport({ scale: 1.0 });
+        const pageItem = document.createElement('div');
+        pageItem.className = 'page-item';
+        pageItem.dataset.originalIndex = pageNum - 1;
+        pageItem.dataset.rotation = 0;
+
+        const pageLabel = document.createElement('div');
+        pageLabel.className = 'page-number';
+        pageLabel.textContent = `${pageNum}`;
+
+        const canvasWrapper = document.createElement('div');
+        canvasWrapper.className = 'canvas-wrapper';
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const outputScale = window.devicePixelRatio || 1;
+        canvas.width = Math.floor(viewport.width * outputScale);
+        canvas.height = Math.floor(viewport.height * outputScale);
+        canvas.style.width = Math.floor(viewport.width) + "px";
+        canvas.style.height = Math.floor(viewport.height) + "px";
+        const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null;
+        await page.render({ canvasContext: ctx, transform: transform, viewport: viewport }).promise;
+
+        const actionDiv = document.createElement('div');
+        actionDiv.className = 'action-buttons';
+
+        const rotateBtn = document.createElement('button');
+        rotateBtn.className = 'action-btn rotate-btn';
+        rotateBtn.title = "Girar 90 graus";
+        rotateBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path></svg> Girar`;
+        rotateBtn.onclick = () => {
+            let currentRot = parseInt(pageItem.dataset.rotation);
+            currentRot = (currentRot + 90) % 360;
+            pageItem.dataset.rotation = currentRot;
+            canvas.style.transform = `rotate(${currentRot}deg)`;
+        };
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'action-btn remove-btn';
+        removeBtn.title = "Remover página";
+        removeBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg> Remover`;
+        removeBtn.onclick = () => {
+            pageItem.style.transform = 'scale(0.8)';
+            pageItem.style.opacity = '0';
+            setTimeout(() => {
+                pageItem.remove();
+                if (document.querySelectorAll('.page-item').length === 0) downloadBtn.disabled = true;
+            }, 300);
+        };
+
+        actionDiv.appendChild(rotateBtn);
+        actionDiv.appendChild(removeBtn);
+        canvasWrapper.appendChild(canvas);
+        pageItem.appendChild(pageLabel);
+        pageItem.appendChild(canvasWrapper);
+        pageItem.appendChild(actionDiv);
+        grid.appendChild(pageItem);
+    }
+
+    downloadBtn.addEventListener('click', async () => {
+        if (!originalPdfBytes) return;
+        const pageElements = document.querySelectorAll('.page-item');
+        if (pageElements.length === 0) { alert("Nenhuma página selecionada para gerar o PDF."); return; }
+        showLoading();
+        downloadBtn.disabled = true;
+        setTimeout(async () => {
+            try {
+                const { PDFDocument, degrees } = PDFLib;
+                const newPdf = await PDFDocument.create();
+                const origPdf = await PDFDocument.load(originalPdfBytes);
+                for (const el of pageElements) {
+                    const origIndex = parseInt(el.dataset.originalIndex);
+                    const additionalRotation = parseInt(el.dataset.rotation);
+                    const [copiedPage] = await newPdf.copyPages(origPdf, [origIndex]);
+                    const currentRotation = copiedPage.getRotation().angle || 0;
+                    copiedPage.setRotation(degrees((currentRotation + additionalRotation) % 360));
+                    newPdf.addPage(copiedPage);
+                }
+                const pdfBytes = await newPdf.save();
+                const blob = new Blob([pdfBytes], { type: "application/pdf" });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = "Documento_Organizado.pdf";
+                link.click();
+                URL.revokeObjectURL(link.href);
+            } catch (error) {
+                console.error("Erro ao gerar o novo PDF:", error);
+                alert("Ocorreu um erro ao processar seu documento.");
+            } finally {
+                hideLoading();
+                downloadBtn.disabled = false;
+            }
+        }, 100);
+    });
+</script>
+</body>
+</html>
