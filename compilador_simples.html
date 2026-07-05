@@ -17,10 +17,6 @@
     font-family:"Segoe UI", system-ui, sans-serif;
     min-height:100vh;
   }
-  .assinatura {
-    position:fixed; top:5px; right:12px; font-size:8px; color:var(--mut);
-    letter-spacing:.12em; z-index:9999; opacity:.7; pointer-events:none;
-  }
   .navbar {
     display:flex; gap:0; background:#0b0e12;
     border-bottom:2px solid var(--line);
@@ -60,10 +56,12 @@
   .success { color:var(--acc); }
   .error { color:var(--err); }
   .info { color:#5ba8f7; }
+  footer { text-align:center; color:var(--mut); font-size:.75rem; padding:20px; border-top:1px solid var(--line); }
+  footer .fbtn { display:inline-flex; align-items:center; gap:7px; background:#25d366; color:#06210f; text-decoration:none; font-weight:700; font-size:.8rem; padding:9px 16px; border-radius:999px; margin-bottom:10px; }
+  footer b { color:var(--acc); }
 </style>
 </head>
 <body>
-<div class="assinatura">DESENVOLVIDO JACKSON GOMES</div>
 <nav class="navbar">
   <a href="index.html"><span class="icon">🏠</span>Voltar ao Início</a>
 </nav>
@@ -81,6 +79,11 @@
     <div class="status-msg" id="status">Aguardando seleção...</div>
   </div>
 </div>
+
+<footer>
+  <a class="fbtn" href="https://wa.me/5511985926457?text=Ol%C3%A1%20Jackson!%20Reportando%20um%20bug%2Fsugest%C3%A3o%3A%20" target="_blank" rel="noopener">💬 Reportar bug ou sugerir função</a>
+  <div>Desenvolvido por <b>Jackson Gomes</b></div>
+</footer>
 
 <script>
 const statusEl = document.getElementById('status');

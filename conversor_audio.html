@@ -16,10 +16,6 @@
     font-family:"Segoe UI", system-ui, sans-serif;
     min-height:100vh;
   }
-  .assinatura {
-    position:fixed; top:5px; right:12px; font-size:8px; color:var(--mut);
-    letter-spacing:.12em; z-index:9999; opacity:.7; pointer-events:none;
-  }
   .navbar {
     display:flex; gap:0; background:#0b0e12;
     border-bottom:2px solid var(--line);
@@ -96,10 +92,12 @@
   }
   .log.show { display:block; }
   .note { margin-top:14px; color:var(--mut); font-size:.78rem; line-height:1.5; }
+  footer { text-align:center; color:var(--mut); font-size:.75rem; padding:20px; border-top:1px solid var(--line); }
+  footer .fbtn { display:inline-flex; align-items:center; gap:7px; background:#25d366; color:#06210f; text-decoration:none; font-weight:700; font-size:.8rem; padding:9px 16px; border-radius:999px; margin-bottom:10px; }
+  footer b { color:var(--acc); }
 </style>
 </head>
 <body>
-<div class="assinatura">DESENVOLVIDO JACKSON GOMES</div>
 <nav class="navbar">
   <a href="index.html"><span class="icon">🏠</span>Voltar ao Início</a>
 </nav>
@@ -154,6 +152,11 @@
     <p class="note">Primeira execução baixa o motor FFmpeg (~5&nbsp;MB) — precisa de internet só nessa etapa. Saída WAV ignora a qualidade selecionada (sem compressão).</p>
   </div>
 </div>
+
+<footer>
+  <a class="fbtn" href="https://wa.me/5511985926457?text=Ol%C3%A1%20Jackson!%20Reportando%20um%20bug%2Fsugest%C3%A3o%3A%20" target="_blank" rel="noopener">💬 Reportar bug ou sugerir função</a>
+  <div>Desenvolvido por <b>Jackson Gomes</b></div>
+</footer>
 
 <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
