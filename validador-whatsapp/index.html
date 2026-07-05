@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Validador de WhatsApp — Painel</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --wa:#25d366; --wa-dark:#128c7e; --wa-deep:#075e54;
@@ -157,17 +158,18 @@
     <span class="conn-pill" id="conectados-info"><span class="dot"></span> Conectado</span>
 
     <div class="drop" style="margin-top:18px">
-      <input type="file" id="fileInput" accept=".csv,.txt">
-      <div class="hint">Um número por linha, com DDI e DDD (ex.: 5511999998888)</div>
+      <input type="file" id="fileInput" accept=".csv,.txt,.xlsx,.xls">
+      <div class="hint">Excel, CSV ou TXT — um número por linha. Ele primeiro confere o formato (DDI+DDD+número) e depois checa o WhatsApp.</div>
     </div>
 
-    <button class="btn-primary" id="btnProcessar" onclick="iniciarValidacao()">Validar Lista</button>
+    <button class="btn-primary" id="btnProcessar" onclick="iniciarValidacao()">Higienizar e Validar</button>
     <button class="btn-ghost" id="btnBaixar" onclick="baixarResultados()">⬇ Baixar Resultados (CSV)</button>
 
-    <div class="stats">
+    <div class="stats" style="grid-template-columns:repeat(auto-fit,minmax(78px,1fr))">
       <div class="stat s-total"><div class="n" id="count-total">0</div><div class="l">Total</div></div>
-      <div class="stat s-valid"><div class="n" id="count-valid">0</div><div class="l">Válidos</div></div>
-      <div class="stat s-invalid"><div class="n" id="count-invalid">0</div><div class="l">Inválidos</div></div>
+      <div class="stat s-valid"><div class="n" id="count-valid">0</div><div class="l">Com WhatsApp</div></div>
+      <div class="stat s-invalid"><div class="n" id="count-invalid">0</div><div class="l">Sem WhatsApp</div></div>
+      <div class="stat" style="background:linear-gradient(135deg,#c58a20,#9c6d15)"><div class="n" id="count-fmt">0</div><div class="l">Formato errado</div></div>
     </div>
 
     <div id="log"></div>
@@ -348,78 +350,111 @@
         logDiv.scrollTop = logDiv.scrollHeight;
     }
 
-    function extrairNumeros(text) {
+    // HIGIENIZADOR: normaliza para o padrão DDI+DDD+número (55 + 10/11 dígitos).
+    // Retorna null quando o formato é inválido.
+    function normalizarNumero(raw) {
+        let d = (raw || '').replace(/\D/g, '').replace(/^0+/, '');
+        if (d.startsWith('55') && (d.length === 12 || d.length === 13)) return d;
+        if (d.length === 10 || d.length === 11) return '55' + d;
+        return null;
+    }
+
+    function extrairLinhas(text) {
         return text.split(/\r?\n/)
-            .map(l => l.split(/[;,]/)[0].trim())
-            .map(n => n.replace(/\D/g, ''))
-            .filter(n => n.length >= 8);
+            .map(l => l.split(/[;,\t]/)[0].trim())
+            .filter(l => l.replace(/\D/g, '').length >= 3);
     }
 
     async function iniciarValidacao() {
         const fileInput = document.getElementById('fileInput');
         const btn = document.getElementById('btnProcessar');
-        if (fileInput.files.length === 0) { alert('Por favor, selecione um arquivo CSV/TXT.'); return; }
+        if (fileInput.files.length === 0) { alert('Selecione um arquivo Excel, CSV ou TXT.'); return; }
 
         btn.disabled = true;
-        btn.innerText = 'Validando...';
+        btn.innerText = 'Processando...';
         document.getElementById('log').innerHTML = '';
         document.getElementById('btnBaixar').style.display = 'none';
         resultados = [];
 
-        const reader = new FileReader();
-        reader.onload = async function (event) {
-            const numbers = extrairNumeros(event.target.result);
-            document.getElementById('count-total').innerText = numbers.length;
-            let validCount = 0, invalidCount = 0;
-            document.getElementById('count-valid').innerText = 0;
-            document.getElementById('count-invalid').innerText = 0;
+        const file = fileInput.files[0];
+        const ext = (file.name.split('.').pop() || '').toLowerCase();
+        try {
+            let linhas;
+            if (ext === 'xlsx' || ext === 'xls') {
+                const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+                let arr = [];
+                wb.SheetNames.forEach(sn => XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1 })
+                    .forEach(row => { if (row[0] != null) arr.push(String(row[0])); }));
+                linhas = arr.map(l => l.trim()).filter(l => l.replace(/\D/g, '').length >= 3);
+            } else {
+                linhas = extrairLinhas(await file.text());
+            }
+            await processarLinhas(linhas);
+        } catch (e) {
+            adicionarLog('Erro ao ler o arquivo: ' + e.message, true);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = 'Higienizar e Validar';
+        }
+    }
 
-            const concurrency = Math.max(1, ultimoConectados);
-            adicionarLog(`Validando com ${concurrency} número(s) em paralelo...`);
+    async function processarLinhas(linhas) {
+        document.getElementById('count-total').innerText = linhas.length;
+        let validCount = 0, invalidCount = 0, fmtCount = 0;
+        document.getElementById('count-valid').innerText = 0;
+        document.getElementById('count-invalid').innerText = 0;
+        document.getElementById('count-fmt').innerText = 0;
 
-            let idx = 0;
-            async function worker() {
-                while (idx < numbers.length) {
-                    const numero = numbers[idx++];
-                    adicionarLog(`Consultando: ${numero}...`);
-                    try {
-                        const res = await fetch(`${API_BASE}/api/validar`, {
-                            method: 'POST', headers: headers(),
-                            body: JSON.stringify({ numero })
-                        });
-                        const r = await res.json();
-                        if (!res.ok) {
-                            adicionarLog(`Erro ao consultar ${numero}: ${r.erro || res.status}`, true);
-                            resultados.push({ numero, status: 'erro' });
-                        } else if (r.valido) {
-                            validCount++; document.getElementById('count-valid').innerText = validCount;
-                            resultados.push({ numero, status: 'valido' });
-                        } else {
-                            invalidCount++; document.getElementById('count-invalid').innerText = invalidCount;
-                            resultados.push({ numero, status: 'invalido' });
-                        }
-                    } catch (e) {
-                        adicionarLog(`Erro de conexão ao consultar ${numero}`, true);
-                        resultados.push({ numero, status: 'erro' });
+        // 1) HIGIENIZAÇÃO — confere o formato antes de chamar a API
+        const itens = linhas.map(orig => ({ original: orig, numero: normalizarNumero(orig) }));
+        itens.forEach(it => { if (!it.numero) { it.status = 'formato errado'; fmtCount++; } });
+        document.getElementById('count-fmt').innerText = fmtCount;
+
+        // 2) VERIFICAÇÃO — só os de formato válido vão para a API
+        const paraChecar = itens.filter(it => it.numero);
+        const concurrency = Math.max(1, ultimoConectados);
+        adicionarLog(`${linhas.length} linhas — ${fmtCount} com formato errado. Verificando WhatsApp de ${paraChecar.length} número(s) com ${concurrency} sessão(ões)...`);
+
+        let idx = 0;
+        async function worker() {
+            while (idx < paraChecar.length) {
+                const it = paraChecar[idx++];
+                adicionarLog(`Consultando: ${it.numero}...`);
+                try {
+                    const res = await fetch(`${API_BASE}/api/validar`, {
+                        method: 'POST', headers: headers(),
+                        body: JSON.stringify({ numero: it.numero })
+                    });
+                    const r = await res.json();
+                    if (!res.ok) {
+                        adicionarLog(`Erro ao consultar ${it.numero}: ${r.erro || res.status}`, true);
+                        it.status = 'erro';
+                    } else if (r.valido) {
+                        it.status = 'possui whatsapp';
+                        validCount++; document.getElementById('count-valid').innerText = validCount;
+                    } else {
+                        it.status = 'nao possui';
+                        invalidCount++; document.getElementById('count-invalid').innerText = invalidCount;
                     }
+                } catch (e) {
+                    adicionarLog(`Erro de conexão ao consultar ${it.numero}`, true);
+                    it.status = 'erro';
                 }
             }
+        }
+        const workers = [];
+        for (let i = 0; i < concurrency; i++) workers.push(worker());
+        await Promise.all(workers);
+        resultados = itens;
 
-            const workers = [];
-            for (let i = 0; i < concurrency; i++) workers.push(worker());
-            await Promise.all(workers);
-
-            btn.disabled = false;
-            btn.innerText = 'Validar Lista';
-            adicionarLog('Processo concluído!');
-            if (resultados.length > 0) document.getElementById('btnBaixar').style.display = 'block';
-        };
-        reader.readAsText(fileInput.files[0]);
+        adicionarLog('Processo concluído!');
+        if (resultados.length > 0) document.getElementById('btnBaixar').style.display = 'block';
     }
 
     function baixarResultados() {
-        const csv = 'numero,status\n' + resultados.map(r => `${r.numero},${r.status}`).join('\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const csv = 'numero,formatado,status\n' + resultados.map(r =>
+            `"${(r.original || '').replace(/"/g, '""')}",${r.numero || ''},"${r.status}"`).join('\n');
+        const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.download = 'resultado_validacao.csv';
