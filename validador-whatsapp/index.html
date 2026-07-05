@@ -1,322 +1,428 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Validador de Lista - WhatsApp (4 sessões)</title>
-    <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; max-width: 760px; margin: auto; background-color: #f0f2f5; color: #333; }
-        .card { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); text-align: center; }
-        h2 { color: #075e54; margin-top: 0; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Validador de WhatsApp — Painel</title>
+<style>
+  :root{
+    --wa:#25d366; --wa-dark:#128c7e; --wa-deep:#075e54;
+    --ink:#0f2419; --txt:#1f2d3d; --mut:#6b7a8d; --line:#e6ebf1;
+    --bg1:#0b3b32; --bg2:#0e4d40; --panel:#ffffff; --soft:#f4f7f9;
+    --red:#e5484d; --blue:#2563eb; --ok-bg:#eafff3; --ok-line:#8fe3b6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+    color:var(--txt);
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(37,211,102,.18), transparent 60%),
+      radial-gradient(1000px 500px at 110% 0%, rgba(18,140,126,.20), transparent 55%),
+      #eef2f5;
+    min-height:100vh;
+  }
+  .assinatura{position:fixed;top:8px;right:14px;font-size:8px;color:#9fb4ab;letter-spacing:.14em;z-index:9999;opacity:.8;pointer-events:none}
 
-        /* Login / QR */
-        #login-area { display: block; margin-top: 20px; }
-        .sub { color:#667; font-size:.9em; margin-bottom:18px; }
-        .qr-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:16px; }
-        .qr-cell { border:1px solid #e2e8f0; border-radius:10px; padding:14px; background:#fafafa; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:230px; }
-        .qr-cell h3 { margin:0 0 8px; font-size:.95em; color:#334; }
-        .qr-cell img { width:180px; height:180px; display:none; border:6px solid #fff; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.1); }
-        .qr-cell .state { font-size:.85em; color:#718096; margin-top:6px; }
-        .qr-cell.ok { border-color:#25d366; background:#eafff2; }
-        .qr-cell.ok .state { color:#128c7e; font-weight:bold; }
-        .mini-loader { border:3px solid #eee; border-top:3px solid #075e54; border-radius:50%; width:26px; height:26px; animation:spin 1s linear infinite; margin:10px auto; }
-        @keyframes spin { 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
+  /* Cabeçalho */
+  .topbar{
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));
+    color:#eafff4;padding:26px 20px 60px;position:relative;overflow:hidden;
+  }
+  .topbar::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:40px;
+    background:radial-gradient(60% 100% at 50% 0,transparent 70%, #eef2f5 71%);}
+  .topbar-in{max-width:960px;margin:0 auto;display:flex;align-items:center;gap:16px}
+  .logo{width:52px;height:52px;border-radius:14px;background:rgba(255,255,255,.12);
+    display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(0,0,0,.18);backdrop-filter:blur(4px)}
+  .logo svg{width:30px;height:30px}
+  .topbar h1{font-size:1.5rem;font-weight:700;letter-spacing:.2px}
+  .topbar p{color:#bfe9d6;font-size:.9rem;margin-top:2px}
 
-        /* App */
-        #app-area { display:none; text-align:left; }
-        .conectados-info { text-align:center; color:#128c7e; font-weight:bold; margin-bottom:6px; }
-        .status-box { display:flex; justify-content:space-between; margin-top:25px; gap:15px; }
-        .status-item { padding:20px; border-radius:8px; text-align:center; flex:1; color:#fff; font-size:1.2em; font-weight:bold; }
-        .bg-total { background:#4a5568; } .bg-valid { background:#128c7e; } .bg-invalid { background:#e53e3e; }
-        .input-group { margin:20px 0; border:2px dashed #b3c6c4; padding:20px; border-radius:6px; text-align:center; background:#fafafa; }
-        button { padding:14px; cursor:pointer; background:#075e54; color:#fff; border:none; border-radius:6px; font-weight:bold; font-size:1.1em; width:100%; transition:background .2s; }
-        button:hover { background:#0d463e; } button:disabled { background:#cbd5e1; cursor:not-allowed; }
-        #btnBaixar { margin-top:10px; background:#4a5568; display:none; } #btnBaixar:hover { background:#2d3748; }
-        #log { margin-top:20px; max-height:170px; overflow-y:auto; background:#1a202c; color:#aeec97; padding:12px; border-radius:6px; font-family:monospace; font-size:.9em; display:none; }
-        .log-erro { color:#fc8181; }
-    </style>
+  .wrap{max-width:960px;margin:-38px auto 0;padding:0 20px 60px;position:relative;z-index:2}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;
+    box-shadow:0 12px 34px rgba(13,50,42,.10);padding:26px}
+  .card + .card{margin-top:20px}
+
+  .section-head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .section-head h2{font-size:1.1rem;color:var(--wa-deep)}
+  .section-sub{color:var(--mut);font-size:.9rem;margin-bottom:18px}
+
+  /* Chip de status global */
+  .conn-pill{display:inline-flex;align-items:center;gap:8px;background:var(--ok-bg);
+    color:var(--wa-dark);border:1px solid var(--ok-line);font-weight:600;font-size:.85rem;
+    padding:7px 14px;border-radius:999px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--wa);box-shadow:0 0 0 4px rgba(37,211,102,.18)}
+
+  /* Grade de QR */
+  .qr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:18px;margin-top:6px}
+  .qr-cell{border:1px solid var(--line);border-radius:16px;background:var(--soft);
+    padding:18px 16px 20px;display:flex;flex-direction:column;align-items:center;text-align:center;
+    transition:border-color .2s,box-shadow .2s,transform .2s;min-height:280px;justify-content:flex-start}
+  .qr-cell:hover{box-shadow:0 8px 20px rgba(13,50,42,.08)}
+  .qr-cell.ok{background:var(--ok-bg);border-color:var(--ok-line)}
+  .qr-cell h3{font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--mut);
+    display:flex;align-items:center;gap:8px;margin-bottom:12px}
+  .qr-cell h3::before{content:attr(data-n);display:inline-flex;align-items:center;justify-content:center;
+    width:22px;height:22px;border-radius:50%;background:var(--wa-dark);color:#fff;font-size:.72rem;letter-spacing:0}
+  .qr-cell img{width:190px;height:190px;border-radius:12px;background:#fff;padding:8px;
+    box-shadow:0 3px 12px rgba(0,0,0,.08);display:none}
+  .mini-loader{border:3px solid #e3ebe8;border-top:3px solid var(--wa-dark);border-radius:50%;
+    width:30px;height:30px;animation:spin 1s linear infinite;margin:60px auto}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .qr-cell.ok .state-ok{display:flex}
+  .state{font-size:.85rem;color:var(--mut);margin-top:12px;min-height:20px}
+  .qr-cell.ok .state{color:var(--wa-dark);font-weight:700}
+  .check-badge{width:56px;height:56px;border-radius:50%;background:var(--wa);display:none;
+    align-items:center;justify-content:center;margin:34px auto 0;box-shadow:0 6px 16px rgba(37,211,102,.35)}
+  .qr-cell.ok .check-badge{display:flex}
+  .check-badge svg{width:30px;height:30px}
+
+  .btn{border:none;border-radius:10px;font-weight:600;font-size:.85rem;cursor:pointer;
+    padding:9px 16px;margin-top:12px;transition:filter .15s,transform .1s;display:inline-flex;align-items:center;gap:6px}
+  .btn:hover{filter:brightness(1.06)} .btn:active{transform:translateY(1px)}
+  .btn:disabled{opacity:.6;cursor:not-allowed}
+  .btn-refresh{background:#eaf1ff;color:var(--blue);border:1px solid #cddcff}
+  .btn-disconnect{background:#fdecec;color:var(--red);border:1px solid #f6c9cb}
+
+  /* Área de validação */
+  .drop{border:2px dashed #c4d6cd;background:var(--soft);border-radius:14px;padding:26px 20px;text-align:center;transition:.2s}
+  .drop:hover{border-color:var(--wa)}
+  .drop input[type=file]{margin-top:6px}
+  .drop .hint{color:var(--mut);font-size:.82rem;margin-top:10px}
+  .btn-primary{width:100%;margin-top:16px;background:linear-gradient(135deg,var(--wa),var(--wa-dark));
+    color:#fff;border:none;border-radius:12px;padding:15px;font-size:1.02rem;font-weight:700;cursor:pointer;
+    box-shadow:0 8px 20px rgba(18,140,126,.28);transition:filter .15s,transform .1s}
+  .btn-primary:hover{filter:brightness(1.05)} .btn-primary:active{transform:translateY(1px)}
+  .btn-primary:disabled{filter:grayscale(.4) brightness(.95);cursor:not-allowed;box-shadow:none}
+  .btn-ghost{width:100%;margin-top:10px;background:#fff;color:var(--txt);border:1px solid var(--line);
+    border-radius:12px;padding:13px;font-weight:600;cursor:pointer;display:none}
+  .btn-ghost:hover{background:var(--soft)}
+
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:22px}
+  .stat{border-radius:14px;padding:18px 14px;text-align:center;color:#fff;position:relative;overflow:hidden}
+  .stat .n{font-size:1.9rem;font-weight:800;line-height:1}
+  .stat .l{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;opacity:.92;margin-top:6px}
+  .s-total{background:linear-gradient(135deg,#4a5568,#2d3748)}
+  .s-valid{background:linear-gradient(135deg,var(--wa),var(--wa-dark))}
+  .s-invalid{background:linear-gradient(135deg,#f0616a,#d23b43)}
+
+  #log{margin-top:20px;max-height:190px;overflow-y:auto;background:#0f1b17;color:#9be7b6;
+    padding:14px 16px;border-radius:12px;font-family:"Cascadia Code",Consolas,monospace;font-size:.82rem;display:none;line-height:1.6}
+  #log::-webkit-scrollbar{width:8px}#log::-webkit-scrollbar-thumb{background:#2b4038;border-radius:8px}
+  .log-erro{color:#ff9b9b}
+
+  /* Senha */
+  .senha-box{max-width:360px;margin:0 auto;text-align:center}
+  .senha-box input{width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:10px;font-size:1rem;margin-top:10px}
+  .senha-box .btn-primary{margin-top:14px}
+
+  footer{text-align:center;color:var(--mut);font-size:.75rem;padding:26px 20px 40px}
+  footer b{color:var(--wa-deep)}
+
+  @media(max-width:560px){
+    .stats{grid-template-columns:1fr} .topbar h1{font-size:1.25rem} .qr-cell img{width:170px;height:170px}
+  }
+</style>
 </head>
 <body>
-    <div style="position:fixed;top:5px;right:12px;font-size:8px;color:#8b9aa8;letter-spacing:.12em;z-index:9999;opacity:.7;pointer-events:none;">DESENVOLVIDO JACKSON GOMES</div>
+<div class="assinatura">DESENVOLVIDO JACKSON GOMES</div>
 
-    <div class="card">
-        <h2>Painel de Higienização</h2>
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Z" fill="#25d366"/><path d="M8.5 7.3c-.2-.5-.4-.5-.6-.5h-.5c-.2 0-.5.1-.7.3-.3.3-.9.9-.9 2.1s.9 2.4 1 2.6c.1.2 1.7 2.8 4.3 3.8 2.1.8 2.6.7 3 .6.6-.1 1.8-.7 2-1.5.3-.7.3-1.4.2-1.5-.1-.1-.3-.2-.6-.4-.3-.2-1.8-.9-2-1-.3-.1-.5-.1-.6.1l-.9 1.1c-.1.2-.3.2-.5.1-.3-.1-1.2-.5-2.3-1.4-.8-.7-1.4-1.6-1.5-1.9-.2-.3 0-.4.1-.5l.4-.5c.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-.9-2.1Z" fill="#fff"/></svg>
+    </div>
+    <div>
+      <h1>Validador de WhatsApp</h1>
+      <p>Painel de higienização de listas — verifique números ativos com segurança.</p>
+    </div>
+  </div>
+</header>
 
-        <div id="senha-area" style="display:none;">
-            <p>Digite a senha de acesso ao painel:</p>
-            <input type="password" id="senhaInput" style="padding:12px;width:80%;border:1px solid #cbd5e1;border-radius:6px;font-size:1em;" onkeydown="if(event.key==='Enter') entrar()">
-            <p id="senha-erro" style="color:#e53e3e;display:none;">Senha incorreta.</p>
-            <button onclick="entrar()" style="margin-top:10px;">Entrar</button>
-        </div>
+<div class="wrap">
 
-        <div id="login-area" style="display:none;">
-            <p class="sub">Escaneie cada QR Code com um número de WhatsApp diferente. Você pode começar a validar assim que o primeiro conectar.</p>
-            <div class="qr-grid" id="qr-grid"></div>
-        </div>
+  <!-- Senha -->
+  <div class="card" id="senha-area" style="display:none">
+    <div class="senha-box">
+      <h2 style="color:var(--wa-deep)">Acesso ao painel</h2>
+      <p style="color:var(--mut);font-size:.9rem;margin-top:6px">Digite a senha para continuar.</p>
+      <input type="password" id="senhaInput" placeholder="Senha de acesso" onkeydown="if(event.key==='Enter') entrar()">
+      <p id="senha-erro" style="color:var(--red);display:none;margin-top:8px;font-size:.85rem">Senha incorreta.</p>
+      <button class="btn-primary" onclick="entrar()">Entrar</button>
+    </div>
+  </div>
 
-        <div id="app-area">
-            <p class="conectados-info" id="conectados-info">✅ WhatsApp Conectado!</p>
-            <div class="input-group">
-                <input type="file" id="fileInput" accept=".csv,.txt">
-                <p style="font-size:.85em;color:#718096;margin:10px 0 0;">Um número por linha, com DDI e DDD (ex.: 5511999998888)</p>
-            </div>
-            <button id="btnProcessar" onclick="iniciarValidacao()">Validar Lista</button>
-            <button id="btnBaixar" onclick="baixarResultados()">Baixar Resultados (CSV)</button>
+  <!-- Validação (Importador) -->
+  <div class="card" id="app-area" style="display:none">
+    <div class="section-head"><h2>Validar lista</h2></div>
+    <span class="conn-pill" id="conectados-info"><span class="dot"></span> Conectado</span>
 
-            <div class="status-box">
-                <div class="status-item bg-total"><span id="count-total">0</span><br><small>Total</small></div>
-                <div class="status-item bg-valid"><span id="count-valid">0</span><br><small>Válidos</small></div>
-                <div class="status-item bg-invalid"><span id="count-invalid">0</span><br><small>Inválidos</small></div>
-            </div>
-            <div id="log"></div>
-        </div>
+    <div class="drop" style="margin-top:18px">
+      <input type="file" id="fileInput" accept=".csv,.txt">
+      <div class="hint">Um número por linha, com DDI e DDD (ex.: 5511999998888)</div>
     </div>
 
-    <script>
-        const API_BASE = '';           // painel é servido pelo próprio servidor local
-        let resultados = [];
-        let SENHA = '';
-        let monitorando = false;
-        let ultimoConectados = 0;      // nº de sessões conectadas (para paralelismo)
+    <button class="btn-primary" id="btnProcessar" onclick="iniciarValidacao()">Validar Lista</button>
+    <button class="btn-ghost" id="btnBaixar" onclick="baixarResultados()">⬇ Baixar Resultados (CSV)</button>
 
-        function headers() { return { 'Content-Type': 'application/json', 'x-senha': SENHA }; }
+    <div class="stats">
+      <div class="stat s-total"><div class="n" id="count-total">0</div><div class="l">Total</div></div>
+      <div class="stat s-valid"><div class="n" id="count-valid">0</div><div class="l">Válidos</div></div>
+      <div class="stat s-invalid"><div class="n" id="count-invalid">0</div><div class="l">Inválidos</div></div>
+    </div>
 
-        function iniciarMonitoramento() {
-            document.getElementById('senha-area').style.display = 'none';
-            document.getElementById('login-area').style.display = 'block';
-            if (!monitorando) { monitorando = true; setInterval(checarStatus, 2000); }
-            checarStatus();
-        }
+    <div id="log"></div>
+  </div>
 
-        async function entrar() {
-            SENHA = document.getElementById('senhaInput').value;
-            const res = await fetch(`${API_BASE}/api/status`, { headers: headers() }).catch(() => null);
-            if (res && res.ok) iniciarMonitoramento();
-            else document.getElementById('senha-erro').style.display = 'block';
-        }
+  <!-- Conexão / QR -->
+  <div class="card" id="login-area" style="display:none">
+    <div class="section-head"><h2>Conectar números</h2></div>
+    <p class="section-sub">Escaneie cada QR Code com um número de WhatsApp diferente. A validação já começa assim que o primeiro conectar. Se um código expirar, use <b>Atualizar QR</b>.</p>
+    <div class="qr-grid" id="qr-grid"></div>
+  </div>
 
-        (async function () {
-            const res = await fetch(`${API_BASE}/api/status`, { headers: headers() }).catch(() => null);
-            if (res && res.status === 401) document.getElementById('senha-area').style.display = 'block';
-            else iniciarMonitoramento();
-        })();
+</div>
 
-        function renderSessoes(sessions) {
-            const grid = document.getElementById('qr-grid');
-            // cria as células uma vez
-            if (grid.children.length !== sessions.length) {
-                grid.innerHTML = '';
-                sessions.forEach((s, i) => {
-                    const cell = document.createElement('div');
-                    cell.className = 'qr-cell';
-                    cell.id = 'cell-' + i;
-                    cell.innerHTML = `<h3>Número ${i + 1}</h3>
-                        <img id="qr-${i}" alt="QR ${i + 1}">
-                        <div class="mini-loader" id="ld-${i}"></div>
-                        <div class="state" id="st-${i}">Aguardando QR...</div>
-                        <button id="at-${i}" style="display:none;margin-top:10px;background:#2563eb;font-size:.85em;padding:8px;width:auto;">🔄 Atualizar QR</button>
-                        <button id="dc-${i}" style="display:none;margin-top:10px;background:#e53e3e;font-size:.85em;padding:8px;width:auto;">Desconectar</button>`;
-                    grid.appendChild(cell);
-                });
-            }
+<footer>Desenvolvido por <b>Jackson Gomes</b></footer>
+
+<script>
+    const API_BASE = '';
+    let resultados = [];
+    let SENHA = '';
+    let monitorando = false;
+    let ultimoConectados = 0;
+
+    function headers() { return { 'Content-Type': 'application/json', 'x-senha': SENHA }; }
+
+    function iniciarMonitoramento() {
+        document.getElementById('senha-area').style.display = 'none';
+        document.getElementById('login-area').style.display = 'block';
+        if (!monitorando) { monitorando = true; setInterval(checarStatus, 2000); }
+        checarStatus();
+    }
+
+    async function entrar() {
+        SENHA = document.getElementById('senhaInput').value;
+        const res = await fetch(`${API_BASE}/api/status`, { headers: headers() }).catch(() => null);
+        if (res && res.ok) iniciarMonitoramento();
+        else document.getElementById('senha-erro').style.display = 'block';
+    }
+
+    (async function () {
+        const res = await fetch(`${API_BASE}/api/status`, { headers: headers() }).catch(() => null);
+        if (res && res.status === 401) document.getElementById('senha-area').style.display = 'block';
+        else iniciarMonitoramento();
+    })();
+
+    function renderSessoes(sessions) {
+        const grid = document.getElementById('qr-grid');
+        if (grid.children.length !== sessions.length) {
+            grid.innerHTML = '';
             sessions.forEach((s, i) => {
-                const cell = document.getElementById('cell-' + i);
-                const img = document.getElementById('qr-' + i);
-                const ld = document.getElementById('ld-' + i);
-                const st = document.getElementById('st-' + i);
-                const dc = document.getElementById('dc-' + i);
-                const at = document.getElementById('at-' + i);
-                if (s.conectado) {
-                    cell.classList.add('ok');
-                    img.style.display = 'none';
-                    ld.style.display = 'none';
-                    st.textContent = '✅ Conectado';
-                    dc.style.display = 'inline-block';
-                    dc.onclick = () => desconectar(s.id, i + 1);
-                    at.style.display = 'none';
-                } else {
-                    cell.classList.remove('ok');
-                    dc.style.display = 'none';
-                    at.style.display = 'inline-block';
-                    at.onclick = () => atualizarQR(s.id, i + 1);
-                    if (s.qrImage) {
-                        img.src = s.qrImage;
-                        img.style.display = 'block';
-                        ld.style.display = 'none';
-                        st.textContent = 'Escaneie este QR';
-                    } else {
-                        img.style.display = 'none';
-                        ld.style.display = 'block';
-                        st.textContent = 'Aguardando QR...';
-                    }
-                }
+                const cell = document.createElement('div');
+                cell.className = 'qr-cell';
+                cell.id = 'cell-' + i;
+                cell.innerHTML = `<h3 data-n="${i + 1}">Número ${i + 1}</h3>
+                    <img id="qr-${i}" alt="QR ${i + 1}">
+                    <div class="mini-loader" id="ld-${i}"></div>
+                    <div class="check-badge"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                    <div class="state" id="st-${i}">Aguardando QR...</div>
+                    <button id="at-${i}" class="btn btn-refresh" style="display:none">🔄 Atualizar QR</button>
+                    <button id="dc-${i}" class="btn btn-disconnect" style="display:none">Desconectar</button>`;
+                grid.appendChild(cell);
             });
         }
-
-        async function checarStatus() {
-            try {
-                const response = await fetch(`${API_BASE}/api/status`, { headers: headers() });
-                if (response.status === 401) {
-                    document.getElementById('senha-area').style.display = 'block';
-                    document.getElementById('login-area').style.display = 'none';
-                    document.getElementById('app-area').style.display = 'none';
-                    return;
-                }
-                const data = await response.json();
-                const sessions = data.sessions || [];
-                ultimoConectados = data.conectados || 0;
-
-                renderSessoes(sessions);
-
-                if (data.algumConectado) {
-                    document.getElementById('app-area').style.display = 'block';
-                    document.getElementById('conectados-info').textContent =
-                        `✅ ${ultimoConectados} de ${data.total} números conectados`;
+        sessions.forEach((s, i) => {
+            const cell = document.getElementById('cell-' + i);
+            const img = document.getElementById('qr-' + i);
+            const ld = document.getElementById('ld-' + i);
+            const st = document.getElementById('st-' + i);
+            const dc = document.getElementById('dc-' + i);
+            const at = document.getElementById('at-' + i);
+            if (s.conectado) {
+                cell.classList.add('ok');
+                img.style.display = 'none';
+                ld.style.display = 'none';
+                st.textContent = '✅ Conectado';
+                dc.style.display = 'inline-flex';
+                dc.onclick = () => desconectar(s.id, i + 1);
+                at.style.display = 'none';
+            } else {
+                cell.classList.remove('ok');
+                dc.style.display = 'none';
+                at.style.display = 'inline-flex';
+                at.onclick = () => atualizarQR(s.id, i + 1);
+                if (s.qrImage) {
+                    img.src = s.qrImage;
+                    img.style.display = 'block';
+                    ld.style.display = 'none';
+                    st.textContent = 'Escaneie este QR';
                 } else {
-                    document.getElementById('app-area').style.display = 'none';
+                    img.style.display = 'none';
+                    ld.style.display = 'block';
+                    st.textContent = 'Aguardando QR...';
                 }
-                // mantém a grade de QR visível para reconectar os que faltam
-                document.getElementById('login-area').style.display =
-                    (ultimoConectados < sessions.length) ? 'block' : 'none';
-            } catch (error) {
-                document.getElementById('login-area').style.display = 'block';
-                const grid = document.getElementById('qr-grid');
-                if (grid) grid.innerHTML = '<p style="color:#e53e3e">Servidor offline. Inicie o INICIAR.bat.</p>';
             }
-        }
+        });
+    }
 
-        async function desconectar(id, numeroLabel) {
-            if (!confirm(`Desconectar o Número ${numeroLabel}? Ele vai deslogar do WhatsApp e mostrar um novo QR Code para conectar outro número.`)) return;
-            const dcBtn = document.getElementById('dc-' + (numeroLabel - 1));
-            if (dcBtn) { dcBtn.disabled = true; dcBtn.textContent = 'Desconectando...'; }
-            try {
-                const res = await fetch(`${API_BASE}/api/desconectar`, {
-                    method: 'POST', headers: headers(),
-                    body: JSON.stringify({ sessao: id })
-                });
-                const r = await res.json().catch(() => ({}));
-                if (!res.ok) alert('Erro ao desconectar: ' + (r.erro || res.status));
-                // o status volta a atualizar sozinho e mostrará o novo QR
-            } catch (e) {
-                alert('Erro de conexão ao desconectar.');
-            } finally {
-                if (dcBtn) { dcBtn.disabled = false; dcBtn.textContent = 'Desconectar'; }
+    async function checarStatus() {
+        try {
+            const response = await fetch(`${API_BASE}/api/status`, { headers: headers() });
+            if (response.status === 401) {
+                document.getElementById('senha-area').style.display = 'block';
+                document.getElementById('login-area').style.display = 'none';
+                document.getElementById('app-area').style.display = 'none';
+                return;
             }
-        }
+            const data = await response.json();
+            const sessions = data.sessions || [];
+            ultimoConectados = data.conectados || 0;
 
-        async function atualizarQR(id, numeroLabel) {
-            const btn = document.getElementById('at-' + (numeroLabel - 1));
-            const st = document.getElementById('st-' + (numeroLabel - 1));
-            const img = document.getElementById('qr-' + (numeroLabel - 1));
-            const ld = document.getElementById('ld-' + (numeroLabel - 1));
-            if (btn) { btn.disabled = true; btn.textContent = 'Gerando...'; }
-            if (img) img.style.display = 'none';
-            if (ld) ld.style.display = 'block';
-            if (st) st.textContent = 'Gerando novo QR...';
-            try {
-                await fetch(`${API_BASE}/api/atualizar-qr`, {
-                    method: 'POST', headers: headers(),
-                    body: JSON.stringify({ sessao: id })
-                });
-                // o novo QR aparece sozinho no próximo ciclo de status
-            } catch (e) {
-                if (st) st.textContent = 'Erro ao atualizar. Tente de novo.';
-            } finally {
-                setTimeout(() => { if (btn) { btn.disabled = false; btn.textContent = '🔄 Atualizar QR'; } }, 4000);
+            renderSessoes(sessions);
+
+            if (data.algumConectado) {
+                document.getElementById('app-area').style.display = 'block';
+                document.getElementById('conectados-info').innerHTML =
+                    `<span class="dot"></span> ${ultimoConectados} de ${data.total} números conectados`;
+            } else {
+                document.getElementById('app-area').style.display = 'none';
             }
+            document.getElementById('login-area').style.display =
+                (ultimoConectados < sessions.length) ? 'block' : 'none';
+        } catch (error) {
+            document.getElementById('login-area').style.display = 'block';
+            const grid = document.getElementById('qr-grid');
+            if (grid) grid.innerHTML = '<p style="color:var(--red)">Servidor offline. Inicie o INICIAR.bat.</p>';
         }
+    }
 
-        // ================= VALIDAÇÃO =================
-        function adicionarLog(texto, ehErro = false) {
-            const logDiv = document.getElementById('log');
-            logDiv.style.display = 'block';
-            const linha = document.createElement('div');
-            linha.textContent = texto;
-            if (ehErro) linha.className = 'log-erro';
-            logDiv.appendChild(linha);
-            logDiv.scrollTop = logDiv.scrollHeight;
+    async function desconectar(id, numeroLabel) {
+        if (!confirm(`Desconectar o Número ${numeroLabel}? Ele vai deslogar do WhatsApp e mostrar um novo QR Code para conectar outro número.`)) return;
+        const dcBtn = document.getElementById('dc-' + (numeroLabel - 1));
+        if (dcBtn) { dcBtn.disabled = true; dcBtn.textContent = 'Desconectando...'; }
+        try {
+            const res = await fetch(`${API_BASE}/api/desconectar`, {
+                method: 'POST', headers: headers(),
+                body: JSON.stringify({ sessao: id })
+            });
+            const r = await res.json().catch(() => ({}));
+            if (!res.ok) alert('Erro ao desconectar: ' + (r.erro || res.status));
+        } catch (e) {
+            alert('Erro de conexão ao desconectar.');
+        } finally {
+            if (dcBtn) { dcBtn.disabled = false; dcBtn.textContent = 'Desconectar'; }
         }
+    }
 
-        function extrairNumeros(text) {
-            return text.split(/\r?\n/)
-                .map(l => l.split(/[;,]/)[0].trim())
-                .map(n => n.replace(/\D/g, ''))
-                .filter(n => n.length >= 8);
+    async function atualizarQR(id, numeroLabel) {
+        const btn = document.getElementById('at-' + (numeroLabel - 1));
+        const st = document.getElementById('st-' + (numeroLabel - 1));
+        const img = document.getElementById('qr-' + (numeroLabel - 1));
+        const ld = document.getElementById('ld-' + (numeroLabel - 1));
+        if (btn) { btn.disabled = true; btn.textContent = 'Gerando...'; }
+        if (img) img.style.display = 'none';
+        if (ld) ld.style.display = 'block';
+        if (st) st.textContent = 'Gerando novo QR...';
+        try {
+            await fetch(`${API_BASE}/api/atualizar-qr`, {
+                method: 'POST', headers: headers(),
+                body: JSON.stringify({ sessao: id })
+            });
+        } catch (e) {
+            if (st) st.textContent = 'Erro ao atualizar. Tente de novo.';
+        } finally {
+            setTimeout(() => { if (btn) { btn.disabled = false; btn.textContent = '🔄 Atualizar QR'; } }, 4000);
         }
+    }
 
-        async function iniciarValidacao() {
-            const fileInput = document.getElementById('fileInput');
-            const btn = document.getElementById('btnProcessar');
-            if (fileInput.files.length === 0) { alert('Por favor, selecione um arquivo CSV/TXT.'); return; }
+    function adicionarLog(texto, ehErro = false) {
+        const logDiv = document.getElementById('log');
+        logDiv.style.display = 'block';
+        const linha = document.createElement('div');
+        linha.textContent = texto;
+        if (ehErro) linha.className = 'log-erro';
+        logDiv.appendChild(linha);
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
 
-            btn.disabled = true;
-            btn.innerText = 'Validando...';
-            document.getElementById('log').innerHTML = '';
-            document.getElementById('btnBaixar').style.display = 'none';
-            resultados = [];
+    function extrairNumeros(text) {
+        return text.split(/\r?\n/)
+            .map(l => l.split(/[;,]/)[0].trim())
+            .map(n => n.replace(/\D/g, ''))
+            .filter(n => n.length >= 8);
+    }
 
-            const reader = new FileReader();
-            reader.onload = async function (event) {
-                const numbers = extrairNumeros(event.target.result);
-                document.getElementById('count-total').innerText = numbers.length;
-                let validCount = 0, invalidCount = 0;
-                document.getElementById('count-valid').innerText = 0;
-                document.getElementById('count-invalid').innerText = 0;
+    async function iniciarValidacao() {
+        const fileInput = document.getElementById('fileInput');
+        const btn = document.getElementById('btnProcessar');
+        if (fileInput.files.length === 0) { alert('Por favor, selecione um arquivo CSV/TXT.'); return; }
 
-                // paralelismo = número de sessões conectadas (o servidor
-                // distribui e respeita o intervalo de cada número)
-                const concurrency = Math.max(1, ultimoConectados);
-                adicionarLog(`Validando com ${concurrency} número(s) em paralelo...`);
+        btn.disabled = true;
+        btn.innerText = 'Validando...';
+        document.getElementById('log').innerHTML = '';
+        document.getElementById('btnBaixar').style.display = 'none';
+        resultados = [];
 
-                let idx = 0;
-                async function worker() {
-                    while (idx < numbers.length) {
-                        const numero = numbers[idx++];
-                        adicionarLog(`Consultando: ${numero}...`);
-                        try {
-                            const res = await fetch(`${API_BASE}/api/validar`, {
-                                method: 'POST', headers: headers(),
-                                body: JSON.stringify({ numero })
-                            });
-                            const r = await res.json();
-                            if (!res.ok) {
-                                adicionarLog(`Erro ao consultar ${numero}: ${r.erro || res.status}`, true);
-                                resultados.push({ numero, status: 'erro' });
-                            } else if (r.valido) {
-                                validCount++; document.getElementById('count-valid').innerText = validCount;
-                                resultados.push({ numero, status: 'valido' });
-                            } else {
-                                invalidCount++; document.getElementById('count-invalid').innerText = invalidCount;
-                                resultados.push({ numero, status: 'invalido' });
-                            }
-                        } catch (e) {
-                            adicionarLog(`Erro de conexão ao consultar ${numero}`, true);
+        const reader = new FileReader();
+        reader.onload = async function (event) {
+            const numbers = extrairNumeros(event.target.result);
+            document.getElementById('count-total').innerText = numbers.length;
+            let validCount = 0, invalidCount = 0;
+            document.getElementById('count-valid').innerText = 0;
+            document.getElementById('count-invalid').innerText = 0;
+
+            const concurrency = Math.max(1, ultimoConectados);
+            adicionarLog(`Validando com ${concurrency} número(s) em paralelo...`);
+
+            let idx = 0;
+            async function worker() {
+                while (idx < numbers.length) {
+                    const numero = numbers[idx++];
+                    adicionarLog(`Consultando: ${numero}...`);
+                    try {
+                        const res = await fetch(`${API_BASE}/api/validar`, {
+                            method: 'POST', headers: headers(),
+                            body: JSON.stringify({ numero })
+                        });
+                        const r = await res.json();
+                        if (!res.ok) {
+                            adicionarLog(`Erro ao consultar ${numero}: ${r.erro || res.status}`, true);
                             resultados.push({ numero, status: 'erro' });
+                        } else if (r.valido) {
+                            validCount++; document.getElementById('count-valid').innerText = validCount;
+                            resultados.push({ numero, status: 'valido' });
+                        } else {
+                            invalidCount++; document.getElementById('count-invalid').innerText = invalidCount;
+                            resultados.push({ numero, status: 'invalido' });
                         }
+                    } catch (e) {
+                        adicionarLog(`Erro de conexão ao consultar ${numero}`, true);
+                        resultados.push({ numero, status: 'erro' });
                     }
                 }
+            }
 
-                const workers = [];
-                for (let i = 0; i < concurrency; i++) workers.push(worker());
-                await Promise.all(workers);
+            const workers = [];
+            for (let i = 0; i < concurrency; i++) workers.push(worker());
+            await Promise.all(workers);
 
-                btn.disabled = false;
-                btn.innerText = 'Validar Lista';
-                adicionarLog('Processo concluído!');
-                if (resultados.length > 0) document.getElementById('btnBaixar').style.display = 'block';
-            };
-            reader.readAsText(fileInput.files[0]);
-        }
+            btn.disabled = false;
+            btn.innerText = 'Validar Lista';
+            adicionarLog('Processo concluído!');
+            if (resultados.length > 0) document.getElementById('btnBaixar').style.display = 'block';
+        };
+        reader.readAsText(fileInput.files[0]);
+    }
 
-        function baixarResultados() {
-            const csv = 'numero,status\n' + resultados.map(r => `${r.numero},${r.status}`).join('\n');
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'resultado_validacao.csv';
-            link.click();
-            URL.revokeObjectURL(link.href);
-        }
-    </script>
+    function baixarResultados() {
+        const csv = 'numero,status\n' + resultados.map(r => `${r.numero},${r.status}`).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'resultado_validacao.csv';
+        link.click();
+        URL.revokeObjectURL(link.href);
+    }
+</script>
 </body>
 </html>
