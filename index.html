@@ -7,150 +7,117 @@
 <style>
   :root{
     --bg:#0e1216; --panel:#171d24; --panel2:#1e2630; --line:#293440;
-    --txt:#e6ebf0; --mut:#8593a1; --acc:#35c4a2; --acc2:#2aa489;
+    --txt:#e6ebf0; --mut:#8593a1; --acc:#35c4a2; --acc2:#2aa489; --wa:#25d366;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--txt);font-family:"Segoe UI",system-ui,-apple-system,sans-serif;min-height:100vh;display:flex;flex-direction:column;font-size:14px}
-  .assinatura{position:fixed;top:5px;right:11px;font-size:7px;color:var(--mut);letter-spacing:.14em;z-index:9999;opacity:.65;pointer-events:none}
+  .assinatura{position:fixed;top:5px;right:11px;font-size:7px;color:var(--mut);letter-spacing:.14em;z-index:9999;opacity:.6;pointer-events:none}
 
-  .topbar{display:flex;align-items:center;gap:9px;padding:11px 20px;background:#0a0d11;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:100}
-  .brand{font-weight:700;font-size:.92rem;letter-spacing:.2px;display:flex;align-items:center;gap:7px}
-  .brand .ico{width:20px;height:20px;border-radius:6px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;color:#08110d}
-  .brand b{color:var(--acc);font-weight:700}
-  .topbar .tag{margin-left:auto;font-size:.66rem;color:var(--mut);border:1px solid var(--line);padding:3px 9px;border-radius:999px}
+  /* Navbar estilo topo */
+  .nav{display:flex;align-items:center;gap:22px;padding:12px 24px;background:#0a0d11;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:100}
+  .nav .brand{font-weight:800;font-size:1rem;display:flex;align-items:center;gap:8px;white-space:nowrap}
+  .nav .brand .ico{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:inline-flex;align-items:center;justify-content:center;font-size:.78rem;color:#08110d}
+  .nav .brand b{color:var(--acc)}
+  .nav .links{display:flex;gap:4px;flex-wrap:wrap}
+  .nav .links a{color:var(--mut);text-decoration:none;font-size:.82rem;font-weight:600;padding:6px 11px;border-radius:8px;transition:.15s}
+  .nav .links a:hover{color:var(--txt);background:var(--panel)}
+  .nav .report{margin-left:auto}
+  .nav .report a{display:inline-flex;align-items:center;gap:6px;background:rgba(37,211,102,.12);color:var(--wa);border:1px solid rgba(37,211,102,.35);text-decoration:none;font-size:.76rem;font-weight:700;padding:6px 12px;border-radius:999px;white-space:nowrap;transition:.15s}
+  .nav .report a:hover{background:rgba(37,211,102,.2)}
 
-  .intro{padding:20px 20px 4px;max-width:1040px;margin:0 auto;width:100%}
-  .intro h1{font-size:1.05rem;font-weight:600}
-  .intro p{color:var(--mut);font-size:.78rem;margin-top:3px}
+  /* Saudação */
+  .hello{text-align:center;padding:34px 20px 6px}
+  .hello h1{font-size:1.5rem;font-weight:700}
+  .hello h1 span{color:var(--acc)}
+  .hello p{color:var(--mut);font-size:.84rem;margin-top:5px}
 
-  .wrap{flex:1;max-width:1040px;width:100%;margin:0 auto;padding:10px 20px 44px}
-  .group{margin-top:20px}
-  .group-title{display:flex;align-items:center;gap:8px;font-size:.66rem;text-transform:uppercase;letter-spacing:.14em;color:var(--mut);margin-bottom:9px;font-weight:600}
-  .group-title::after{content:'';flex:1;height:1px;background:var(--line)}
+  /* Chips de filtro */
+  .filters{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:18px 20px 4px;max-width:900px;margin:0 auto}
+  .chip{border:1px solid var(--line);background:var(--panel);color:var(--mut);font-size:.8rem;font-weight:600;padding:8px 16px;border-radius:999px;cursor:pointer;transition:.15s}
+  .chip:hover{color:var(--txt);border-color:var(--acc)}
+  .chip.active{background:var(--acc);color:#08110d;border-color:var(--acc)}
 
-  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:11px}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 14px;text-decoration:none;color:var(--txt);transition:border-color .18s,transform .18s,background .18s;display:flex;flex-direction:column;position:relative;overflow:hidden}
+  .wrap{flex:1;max-width:1040px;width:100%;margin:0 auto;padding:16px 20px 44px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:12px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:15px 15px;text-decoration:none;color:var(--txt);transition:border-color .18s,transform .18s,background .18s;display:flex;flex-direction:column;position:relative;overflow:hidden}
   .card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:transparent;transition:background .18s}
   .card:hover{border-color:var(--acc);transform:translateY(-2px);background:#1b232c}
   .card:hover::before{background:var(--acc)}
-  .card .emoji{font-size:1.05rem;margin-bottom:6px}
-  .card h2{font-size:.82rem;font-weight:600;margin-bottom:3px}
-  .card p{color:var(--mut);font-size:.7rem;line-height:1.4;flex:1}
+  .card .emoji{font-size:1.15rem;margin-bottom:7px}
+  .card h2{font-size:.84rem;font-weight:600;margin-bottom:3px}
+  .card p{color:var(--mut);font-size:.71rem;line-height:1.4;flex:1}
   .badge{display:inline-block;margin-top:9px;align-self:flex-start;font-size:.6rem;font-weight:700;letter-spacing:.03em;padding:2px 8px;border-radius:20px}
   .badge.local{background:rgba(53,196,162,.12);color:var(--acc)}
   .badge.net{background:rgba(91,168,247,.14);color:#5ba8f7}
+  .card.hide{display:none}
 
-  footer{text-align:center;color:var(--mut);font-size:.68rem;padding:16px;border-top:1px solid var(--line)}
+  footer{text-align:center;color:var(--mut);font-size:.72rem;padding:20px;border-top:1px solid var(--line)}
+  footer .fbtn{display:inline-flex;align-items:center;gap:7px;background:var(--wa);color:#06210f;text-decoration:none;font-weight:700;font-size:.78rem;padding:9px 16px;border-radius:999px;margin-bottom:12px;transition:filter .15s}
+  footer .fbtn:hover{filter:brightness(1.06)}
+  footer .sig{margin-top:2px}
   footer b{color:var(--acc)}
 </style>
 </head>
 <body>
 <div class="assinatura">DESENVOLVIDO JACKSON GOMES</div>
 
-<div class="topbar">
+<nav class="nav">
   <div class="brand"><span class="ico">⚙</span>Ferramentas <b>Administrativas</b></div>
-  <div class="tag">Rodam 100% no navegador</div>
+  <div class="links">
+    <a href="organizador_pdf.html">Organizar PDF</a>
+    <a href="juntar_pdf.html">Juntar</a>
+    <a href="dividir_pdf.html">Dividir</a>
+    <a href="imagens_pdf.html">Imagens→PDF</a>
+    <a href="http://02-JACKSON:3000">Validador</a>
+  </div>
+  <div class="report"><a href="https://wa.me/5511985926457?text=Ol%C3%A1%20Jackson!%20Quero%20reportar%20um%20bug%2Fsugest%C3%A3o%20nas%20Ferramentas%20Administrativas%3A%20" target="_blank" rel="noopener">🐞 Reportar bug</a></div>
+</nav>
+
+<div class="hello">
+  <h1>Olá! Vamos <span>começar</span></h1>
+  <p>Escolha uma ferramenta. Tudo roda no seu navegador — nenhum dado é enviado para servidores.</p>
 </div>
 
-<div class="intro">
-  <h1>Central de utilitários</h1>
-  <p>Ferramentas de arquivo processadas localmente — nenhum dado é enviado para servidores.</p>
+<div class="filters" id="filters">
+  <button class="chip active" data-f="all">Todas</button>
+  <button class="chip" data-f="pdf">PDF</button>
+  <button class="chip" data-f="excel">Planilhas</button>
+  <button class="chip" data-f="doc">Documentos</button>
+  <button class="chip" data-f="midia">Mídia</button>
+  <button class="chip" data-f="whats">WhatsApp</button>
 </div>
 
 <div class="wrap">
-
-  <div class="group">
-    <div class="group-title">PDF</div>
-    <div class="cards">
-      <a class="card" href="organizador_pdf.html">
-        <span class="emoji">🗂️</span>
-        <h2>Organizador de PDF</h2>
-        <p>Reordene, gire e remova páginas arrastando.</p>
-        <span class="badge local">No navegador</span>
-      </a>
-      <a class="card" href="juntar_pdf.html">
-        <span class="emoji">📎</span>
-        <h2>Juntar PDFs</h2>
-        <p>Mescle vários PDFs em um único documento.</p>
-        <span class="badge local">No navegador</span>
-      </a>
-      <a class="card" href="dividir_pdf.html">
-        <span class="emoji">✂️</span>
-        <h2>Dividir PDF</h2>
-        <p>Extraia apenas as páginas escolhidas (ex.: 1-5).</p>
-        <span class="badge local">No navegador</span>
-      </a>
-      <a class="card" href="marca_dagua_pdf.html">
-        <span class="emoji">💧</span>
-        <h2>Marca D'água</h2>
-        <p>Texto de segurança em todas as páginas.</p>
-        <span class="badge local">No navegador</span>
-      </a>
-      <a class="card" href="imagens_pdf.html">
-        <span class="emoji">🖼️</span>
-        <h2>Imagens para PDF</h2>
-        <p>Junte imagens num PDF com orientação e margem.</p>
-        <span class="badge local">No navegador</span>
-      </a>
-    </div>
+  <div class="cards" id="cards">
+    <a class="card" data-cat="pdf" href="organizador_pdf.html"><span class="emoji">🗂️</span><h2>Organizador de PDF</h2><p>Reordene, gire e remova páginas arrastando.</p><span class="badge local">No navegador</span></a>
+    <a class="card" data-cat="pdf" href="juntar_pdf.html"><span class="emoji">📎</span><h2>Juntar PDFs</h2><p>Mescle vários PDFs em um único documento.</p><span class="badge local">No navegador</span></a>
+    <a class="card" data-cat="pdf" href="dividir_pdf.html"><span class="emoji">✂️</span><h2>Dividir PDF</h2><p>Extraia apenas as páginas escolhidas (ex.: 1-5).</p><span class="badge local">No navegador</span></a>
+    <a class="card" data-cat="pdf" href="marca_dagua_pdf.html"><span class="emoji">💧</span><h2>Marca D'água</h2><p>Texto de segurança em todas as páginas.</p><span class="badge local">No navegador</span></a>
+    <a class="card" data-cat="pdf" href="imagens_pdf.html"><span class="emoji">🖼️</span><h2>Imagens para PDF</h2><p>Junte imagens num PDF com orientação e margem.</p><span class="badge local">No navegador</span></a>
+    <a class="card" data-cat="excel" href="compilador_abas.html"><span class="emoji">📊</span><h2>Compilador (Todas as Abas)</h2><p>Une Excel/CSV compilando todas as abas.</p><span class="badge local">No navegador</span></a>
+    <a class="card" data-cat="excel" href="compilador_simples.html"><span class="emoji">📋</span><h2>Compilador (Simples)</h2><p>Une Excel/CSV pela primeira aba de cada arquivo.</p><span class="badge local">No navegador</span></a>
+    <a class="card" data-cat="doc" href="capa_acordo.html"><span class="emoji">📝</span><h2>Capa de Acordo</h2><p>Formulário Bradesco com exportação PDF, Word e JSON.</p><span class="badge local">No navegador</span></a>
+    <a class="card" data-cat="midia" href="conversor_audio.html"><span class="emoji">🎵</span><h2>Conversor de Áudio</h2><p>Converta entre MP3, Opus, M4A, OGG e WAV.</p><span class="badge local">No navegador</span></a>
+    <a class="card" data-cat="whats" href="http://02-JACKSON:3000"><span class="emoji">✅</span><h2>Validador de WhatsApp</h2><p>Verifica números ativos. Acesse pela rede/VPN da empresa.</p><span class="badge net">Rede da empresa</span></a>
   </div>
-
-  <div class="group">
-    <div class="group-title">Planilhas &amp; Excel</div>
-    <div class="cards">
-      <a class="card" href="compilador_abas.html">
-        <span class="emoji">📊</span>
-        <h2>Compilador (Todas as Abas)</h2>
-        <p>Une Excel/CSV compilando todas as abas.</p>
-        <span class="badge local">No navegador</span>
-      </a>
-      <a class="card" href="compilador_simples.html">
-        <span class="emoji">📋</span>
-        <h2>Compilador (Simples)</h2>
-        <p>Une Excel/CSV pela primeira aba de cada arquivo.</p>
-        <span class="badge local">No navegador</span>
-      </a>
-    </div>
-  </div>
-
-  <div class="group">
-    <div class="group-title">Documentos &amp; Jurídico</div>
-    <div class="cards">
-      <a class="card" href="capa_acordo.html">
-        <span class="emoji">📝</span>
-        <h2>Capa de Acordo</h2>
-        <p>Formulário Bradesco com exportação PDF, Word e JSON.</p>
-        <span class="badge local">No navegador</span>
-      </a>
-    </div>
-  </div>
-
-  <div class="group">
-    <div class="group-title">Mídia</div>
-    <div class="cards">
-      <a class="card" href="conversor_audio.html">
-        <span class="emoji">🎵</span>
-        <h2>Conversor de Áudio</h2>
-        <p>Converta entre MP3, Opus, M4A, OGG e WAV.</p>
-        <span class="badge local">No navegador</span>
-      </a>
-    </div>
-  </div>
-
-  <div class="group">
-    <div class="group-title">WhatsApp</div>
-    <div class="cards">
-      <a class="card" href="http://02-JACKSON:3000">
-        <span class="emoji">✅</span>
-        <h2>Validador de WhatsApp</h2>
-        <p>Verifica números ativos. Acesse pela rede/VPN da empresa.</p>
-        <span class="badge net">Rede da empresa</span>
-      </a>
-    </div>
-  </div>
-
 </div>
 
-<footer>Desenvolvido por <b>Jackson Gomes</b></footer>
+<footer>
+  <a class="fbtn" href="https://wa.me/5511985926457?text=Ol%C3%A1%20Jackson!%20Quero%20reportar%20um%20bug%2Fsugest%C3%A3o%20nas%20Ferramentas%20Administrativas%3A%20" target="_blank" rel="noopener">💬 Reportar bug ou sugerir função</a>
+  <div class="sig">Desenvolvido por <b>Jackson Gomes</b></div>
+</footer>
+
+<script>
+  const chips = document.querySelectorAll('.chip');
+  const cards = document.querySelectorAll('#cards .card');
+  chips.forEach(c => c.addEventListener('click', () => {
+    chips.forEach(x => x.classList.remove('active'));
+    c.classList.add('active');
+    const f = c.dataset.f;
+    cards.forEach(card => {
+      card.classList.toggle('hide', f !== 'all' && card.dataset.cat !== f);
+    });
+  }));
+</script>
 </body>
 </html>
