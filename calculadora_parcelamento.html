@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de Parcelamento — Ferramentas Administrativas</title>
+<style>
+:root{--bg:#0e1216;--panel:#171d24;--panel2:#1e2630;--line:#293440;--txt:#e6ebf0;--mut:#8593a1;--acc:#35c4a2;--wa:#25d366}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;display:flex;flex-direction:column}
+.navbar{background:var(--panel);border-bottom:1px solid var(--line);padding:12px 20px}
+.navbar a{color:var(--acc);text-decoration:none;font-weight:600;font-size:.9rem}
+.wrap{flex:1;max-width:680px;width:100%;margin:0 auto;padding:32px 20px}
+h1{font-size:1.5rem;margin-bottom:6px}
+.sub{color:var(--mut);font-size:.9rem;margin-bottom:24px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px}
+label{display:block;font-weight:600;font-size:.85rem;margin:14px 0 6px}
+input,select{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:12px;font-size:1rem;font-family:inherit}
+.row{display:flex;gap:12px}.row>div{flex:1}
+.btn{width:100%;margin-top:18px;background:var(--acc);color:#04211a;border:none;border-radius:12px;padding:14px;font-size:1rem;font-weight:700;cursor:pointer}
+.btn:hover{filter:brightness(1.06)}
+.resumo{display:none;margin-top:22px}
+.big{display:flex;gap:12px;flex-wrap:wrap}
+.kpi{flex:1;min-width:140px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:16px;text-align:center}
+.kpi .v{font-size:1.4rem;font-weight:800;color:var(--acc)}.kpi .l{font-size:.72rem;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;margin-top:4px}
+table{width:100%;border-collapse:collapse;margin-top:18px;font-size:.85rem}
+th,td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:right}
+th{color:var(--mut);text-transform:uppercase;font-size:.7rem;letter-spacing:.05em}
+th:first-child,td:first-child{text-align:left}
+.foot{text-align:center;padding:22px 20px 30px}
+.fbtn{display:inline-flex;align-items:center;gap:7px;background:var(--wa);color:#06210f;text-decoration:none;font-weight:700;font-size:.8rem;padding:9px 16px;border-radius:999px;margin-bottom:10px}
+.foot div{color:var(--mut);font-size:.75rem}.foot b{color:var(--acc)}
+</style>
+</head>
+<body>
+<nav class="navbar"><a href="index.html">🏠 Voltar ao Início</a></nav>
+<div class="wrap">
+  <h1>💳 Calculadora de Parcelamento</h1>
+  <p class="sub">Calcula parcelas com juros compostos (Tabela Price) ou sem juros. Mostra o valor da parcela, total e a evolução do saldo.</p>
+  <div class="card">
+    <div class="row">
+      <div><label>Valor total (R$)</label><input type="text" id="valor" placeholder="1000,00" inputmode="decimal"></div>
+      <div><label>Nº de parcelas</label><input type="number" id="n" placeholder="12" min="1"></div>
+    </div>
+    <div class="row">
+      <div><label>Juros ao mês (%)</label><input type="text" id="juros" placeholder="0" inputmode="decimal"></div>
+      <div><label>Entrada (R$, opcional)</label><input type="text" id="entrada" placeholder="0" inputmode="decimal"></div>
+    </div>
+    <button class="btn" onclick="calcular()">Calcular</button>
+    <div class="resumo" id="resumo">
+      <div class="big">
+        <div class="kpi"><div class="v" id="k-parcela">–</div><div class="l">Parcela</div></div>
+        <div class="kpi"><div class="v" id="k-total">–</div><div class="l">Total pago</div></div>
+        <div class="kpi"><div class="v" id="k-juros">–</div><div class="l">Juros total</div></div>
+      </div>
+      <table id="tab"><thead><tr><th>Parcela</th><th>Juros</th><th>Amortização</th><th>Saldo</th></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+</div>
+<div class="foot">
+<a class="fbtn" href="https://wa.me/5511985926457?text=Ol%C3%A1%20Jackson!%20Reportando%20um%20bug%2Fsugest%C3%A3o%20na%20Calculadora%20de%20Parcelamento%3A%20" target="_blank" rel="noopener">💬 Reportar bug ou sugerir função</a>
+<div>Desenvolvido por <b>Jackson Gomes</b></div>
+</div>
+<script>
+const money=v=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const num=id=>parseFloat((document.getElementById(id).value||'0').replace(/\./g,'').replace(',','.').replace(/[^\d.]/g,''))||0;
+function calcular(){
+  const total=num('valor'), n=parseInt(document.getElementById('n').value)||0, i=num('juros')/100, entrada=num('entrada');
+  if(total<=0||n<=0){ alert('Informe o valor total e o número de parcelas.'); return; }
+  const pv=Math.max(0,total-entrada);
+  let parcela, linhas=[], saldo=pv, jurosTotal=0;
+  if(i===0){
+    parcela=pv/n;
+    for(let k=1;k<=n;k++){ const amort=parcela; saldo=Math.max(0,saldo-amort); linhas.push([k,0,amort,saldo]); }
+  } else {
+    parcela=pv*(i*Math.pow(1+i,n))/(Math.pow(1+i,n)-1);
+    for(let k=1;k<=n;k++){ const j=saldo*i; const amort=parcela-j; saldo=Math.max(0,saldo-amort); jurosTotal+=j; linhas.push([k,j,amort,saldo]); }
+  }
+  const totalPago=parcela*n+entrada;
+  document.getElementById('k-parcela').textContent=money(parcela);
+  document.getElementById('k-total').textContent=money(totalPago);
+  document.getElementById('k-juros').textContent=money(jurosTotal);
+  const tb=document.querySelector('#tab tbody'); tb.innerHTML=linhas.map(r=>`<tr><td>${r[0]}ª</td><td>${money(r[1])}</td><td>${money(r[2])}</td><td>${money(r[3])}</td></tr>`).join('');
+  document.getElementById('resumo').style.display='block';
+}
+</script>
+</body>
+</html>

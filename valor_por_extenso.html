@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Valor por Extenso — Ferramentas Administrativas</title>
+<style>
+:root{--bg:#0e1216;--panel:#171d24;--panel2:#1e2630;--line:#293440;--txt:#e6ebf0;--mut:#8593a1;--acc:#35c4a2;--wa:#25d366;--red:#e5484d}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;display:flex;flex-direction:column}
+.navbar{background:var(--panel);border-bottom:1px solid var(--line);padding:12px 20px}
+.navbar a{color:var(--acc);text-decoration:none;font-weight:600;font-size:.9rem}
+.navbar a:hover{text-decoration:underline}
+.wrap{flex:1;max-width:640px;width:100%;margin:0 auto;padding:32px 20px}
+h1{font-size:1.5rem;margin-bottom:6px}
+.sub{color:var(--mut);font-size:.9rem;margin-bottom:24px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px}
+label{display:block;font-weight:600;font-size:.85rem;margin:14px 0 6px}
+input,select{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:12px;font-size:1rem;font-family:inherit}
+.btn{width:100%;margin-top:18px;background:var(--acc);color:#04211a;border:none;border-radius:12px;padding:14px;font-size:1rem;font-weight:700;cursor:pointer}
+.btn:hover{filter:brightness(1.06)}
+.out{margin-top:18px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:16px;font-size:1.05rem;line-height:1.5;white-space:pre-wrap;word-break:break-word;display:none}
+.copy{margin-top:10px;background:transparent;border:1px solid var(--line);color:var(--mut);border-radius:8px;padding:8px 14px;font-size:.8rem;cursor:pointer}
+.foot{text-align:center;padding:22px 20px 30px}
+.fbtn{display:inline-flex;align-items:center;gap:7px;background:var(--wa);color:#06210f;text-decoration:none;font-weight:700;font-size:.8rem;padding:9px 16px;border-radius:999px;margin-bottom:10px}
+.foot div{color:var(--mut);font-size:.75rem}
+.foot b{color:var(--acc)}
+</style>
+</head>
+<body>
+<nav class="navbar"><a href="index.html">🏠 Voltar ao Início</a></nav>
+<div class="wrap">
+  <h1>💬 Valor por Extenso</h1>
+  <p class="sub">Converte um valor em reais para texto por extenso — útil para contratos, recibos e cheques.</p>
+  <div class="card">
+    <label>Valor (R$)</label>
+    <input type="text" id="valor" placeholder="Ex.: 1.234,56" inputmode="decimal" oninput="gerar()">
+    <button class="btn" onclick="gerar()">Converter</button>
+    <div class="out" id="out"></div>
+    <button class="copy" id="copyBtn" style="display:none" onclick="copiar()">📋 Copiar</button>
+  </div>
+</div>
+<div class="foot">
+<a class="fbtn" href="https://wa.me/5511985926457?text=Ol%C3%A1%20Jackson!%20Reportando%20um%20bug%2Fsugest%C3%A3o%20no%20Valor%20por%20Extenso%3A%20" target="_blank" rel="noopener">💬 Reportar bug ou sugerir função</a>
+<div>Desenvolvido por <b>Jackson Gomes</b></div>
+</div>
+<script>
+const unid=['','um','dois','três','quatro','cinco','seis','sete','oito','nove','dez','onze','doze','treze','quatorze','quinze','dezesseis','dezessete','dezoito','dezenove'];
+const dez=['','','vinte','trinta','quarenta','cinquenta','sessenta','setenta','oitenta','noventa'];
+const cem=['','cento','duzentos','trezentos','quatrocentos','quinhentos','seiscentos','setecentos','oitocentos','novecentos'];
+function trio(n){ // 0..999
+  if(n===0) return '';
+  if(n===100) return 'cem';
+  let s=[];
+  const c=Math.floor(n/100), r=n%100;
+  if(c>0) s.push(cem[c]);
+  if(r>0){
+    if(r<20) s.push(unid[r]);
+    else{ const d=Math.floor(r/10), u=r%10; s.push(u>0?dez[d]+' e '+unid[u]:dez[d]); }
+  }
+  return s.join(' e ');
+}
+function extenso(n){
+  n=Math.floor(n);
+  if(n===0) return 'zero';
+  const escalas=[['',''],['mil','mil'],['milhão','milhões'],['bilhão','bilhões'],['trilhão','trilhões']];
+  let partes=[], i=0, blocos=[];
+  while(n>0){ blocos.push(n%1000); n=Math.floor(n/1000); }
+  for(i=blocos.length-1;i>=0;i--){
+    const b=blocos[i];
+    if(b===0) continue;
+    let txt=trio(b);
+    if(i===1){ txt = (b===1)?'mil':txt+' mil'; }
+    else if(i>1){ txt=txt+' '+(b===1?escalas[i][0]:escalas[i][1]); }
+    partes.push(txt);
+  }
+  // junta com "e" quando apropriado
+  return partes.join(', ').replace(/,([^,]*)$/, ' e$1').replace(/\s+/g,' ').trim();
+}
+function gerar(){
+  let raw=document.getElementById('valor').value.trim();
+  const out=document.getElementById('out'), cp=document.getElementById('copyBtn');
+  if(!raw){ out.style.display='none'; cp.style.display='none'; return; }
+  // normaliza 1.234,56 -> 1234.56
+  let norm=raw.replace(/\./g,'').replace(',','.').replace(/[^\d.]/g,'');
+  let v=parseFloat(norm);
+  if(isNaN(v)){ out.style.display='block'; out.textContent='Valor inválido.'; cp.style.display='none'; return; }
+  const reais=Math.floor(v);
+  const cents=Math.round((v-reais)*100);
+  let s='';
+  if(reais>0){ s=extenso(reais)+(reais===1?' real':' reais'); }
+  if(cents>0){ s+=(reais>0?' e ':'')+extenso(cents)+(cents===1?' centavo':' centavos'); }
+  if(reais===0 && cents===0) s='zero real';
+  s=s.charAt(0).toUpperCase()+s.slice(1);
+  out.style.display='block'; out.textContent=s;
+  cp.style.display='inline-block';
+}
+function copiar(){ navigator.clipboard.writeText(document.getElementById('out').textContent); const b=document.getElementById('copyBtn'); b.textContent='✔ Copiado'; setTimeout(()=>b.textContent='📋 Copiar',1500); }
+</script>
+</body>
+</html>

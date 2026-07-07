@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Validar CPF / CNPJ — Ferramentas Administrativas</title>
+<style>
+:root{--bg:#0e1216;--panel:#171d24;--panel2:#1e2630;--line:#293440;--txt:#e6ebf0;--mut:#8593a1;--acc:#35c4a2;--wa:#25d366;--red:#e5484d}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;display:flex;flex-direction:column}
+.navbar{background:var(--panel);border-bottom:1px solid var(--line);padding:12px 20px}
+.navbar a{color:var(--acc);text-decoration:none;font-weight:600;font-size:.9rem}
+.navbar a:hover{text-decoration:underline}
+.wrap{flex:1;max-width:640px;width:100%;margin:0 auto;padding:32px 20px}
+h1{font-size:1.5rem;margin-bottom:6px}
+.sub{color:var(--mut);font-size:.9rem;margin-bottom:24px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px}
+label{display:block;font-weight:600;font-size:.85rem;margin:14px 0 6px}
+input,textarea{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:12px;font-size:1rem;font-family:inherit}
+textarea{min-height:120px;resize:vertical;font-family:Consolas,monospace}
+.btn{width:100%;margin-top:18px;background:var(--acc);color:#04211a;border:none;border-radius:12px;padding:14px;font-size:1rem;font-weight:700;cursor:pointer}
+.btn:hover{filter:brightness(1.06)}
+.res{margin-top:16px;border-radius:10px;padding:14px;font-weight:700;font-size:1.05rem;display:none}
+.ok{background:rgba(53,196,162,.14);border:1px solid var(--acc);color:var(--acc)}
+.bad{background:rgba(229,72,77,.14);border:1px solid var(--red);color:#ff9b9b}
+.lote{margin-top:16px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px;font-size:.9rem;max-height:240px;overflow:auto;display:none}
+.lote .line{display:flex;justify-content:space-between;padding:5px 4px;border-bottom:1px solid var(--line)}
+.lote .v{color:var(--acc)} .lote .x{color:#ff9b9b}
+.foot{text-align:center;padding:22px 20px 30px}
+.fbtn{display:inline-flex;align-items:center;gap:7px;background:var(--wa);color:#06210f;text-decoration:none;font-weight:700;font-size:.8rem;padding:9px 16px;border-radius:999px;margin-bottom:10px}
+.foot div{color:var(--mut);font-size:.75rem}
+.foot b{color:var(--acc)}
+</style>
+</head>
+<body>
+<nav class="navbar"><a href="index.html">🏠 Voltar ao Início</a></nav>
+<div class="wrap">
+  <h1>✅ Validar CPF / CNPJ</h1>
+  <p class="sub">Confere os dígitos verificadores de CPF e CNPJ. Um por vez ou uma lista inteira.</p>
+  <div class="card">
+    <label>CPF ou CNPJ</label>
+    <input type="text" id="doc" placeholder="000.000.000-00 ou 00.000.000/0000-00" oninput="checar()">
+    <div class="res" id="res"></div>
+
+    <label style="margin-top:22px">Ou cole uma lista (um por linha)</label>
+    <textarea id="lista" placeholder="12345678909&#10;11222333000181"></textarea>
+    <button class="btn" onclick="checarLote()">Validar lista</button>
+    <div class="lote" id="lote"></div>
+  </div>
+</div>
+<div class="foot">
+<a class="fbtn" href="https://wa.me/5511985926457?text=Ol%C3%A1%20Jackson!%20Reportando%20um%20bug%2Fsugest%C3%A3o%20no%20Validar%20CPF%2FCNPJ%3A%20" target="_blank" rel="noopener">💬 Reportar bug ou sugerir função</a>
+<div>Desenvolvido por <b>Jackson Gomes</b></div>
+</div>
+<script>
+function validarCPF(c){
+  c=c.replace(/\D/g,''); if(c.length!==11||/^(\d)\1{10}$/.test(c)) return false;
+  let s=0; for(let i=0;i<9;i++) s+=+c[i]*(10-i);
+  let d1=(s*10)%11; if(d1===10) d1=0; if(d1!==+c[9]) return false;
+  s=0; for(let i=0;i<10;i++) s+=+c[i]*(11-i);
+  let d2=(s*10)%11; if(d2===10) d2=0; return d2===+c[10];
+}
+function validarCNPJ(c){
+  c=c.replace(/\D/g,''); if(c.length!==14||/^(\d)\1{13}$/.test(c)) return false;
+  const calc=(base)=>{ let p=base.length-7,s=0; for(let i=base.length;i>=1;i--){ s+=+base[base.length-i]*p--; if(p<2)p=9; } let r=s%11; return r<2?0:11-r; };
+  const d1=calc(c.slice(0,12)); if(d1!==+c[12]) return false;
+  const d2=calc(c.slice(0,13)); return d2===+c[13];
+}
+function tipoValido(v){
+  const d=v.replace(/\D/g,'');
+  if(d.length===11) return {tipo:'CPF',ok:validarCPF(d)};
+  if(d.length===14) return {tipo:'CNPJ',ok:validarCNPJ(d)};
+  return {tipo:'?',ok:false};
+}
+function fmt(d){
+  d=d.replace(/\D/g,'');
+  if(d.length===11) return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4');
+  if(d.length===14) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,'$1.$2.$3/$4-$5');
+  return d;
+}
+function checar(){
+  const v=document.getElementById('doc').value.trim(); const r=document.getElementById('res');
+  if(!v){ r.style.display='none'; return; }
+  const t=tipoValido(v); r.style.display='block';
+  if(t.tipo==='?'){ r.className='res bad'; r.textContent='✖ Quantidade de dígitos inválida (CPF=11, CNPJ=14).'; return; }
+  r.className='res '+(t.ok?'ok':'bad');
+  r.textContent=(t.ok?'✔ ':'✖ ')+t.tipo+' '+fmt(v)+(t.ok?' — válido':' — inválido');
+}
+function checarLote(){
+  const linhas=document.getElementById('lista').value.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  const box=document.getElementById('lote');
+  if(!linhas.length){ box.style.display='none'; return; }
+  box.style.display='block'; box.innerHTML='';
+  let ok=0,bad=0;
+  linhas.forEach(l=>{ const t=tipoValido(l); t.ok?ok++:bad++;
+    box.innerHTML+=`<div class="line"><span>${fmt(l)} <small style="color:var(--mut)">(${t.tipo})</small></span><span class="${t.ok?'v':'x'}">${t.ok?'✔ válido':'✖ inválido'}</span></div>`; });
+  box.innerHTML=`<div style="padding:4px 4px 10px;color:var(--mut)">${ok} válido(s) · ${bad} inválido(s)</div>`+box.innerHTML;
+}
+</script>
+</body>
+</html>

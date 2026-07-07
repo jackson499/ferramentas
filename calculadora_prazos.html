@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de Prazos — Ferramentas Administrativas</title>
+<style>
+:root{--bg:#0e1216;--panel:#171d24;--panel2:#1e2630;--line:#293440;--txt:#e6ebf0;--mut:#8593a1;--acc:#35c4a2;--wa:#25d366}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;display:flex;flex-direction:column}
+.navbar{background:var(--panel);border-bottom:1px solid var(--line);padding:12px 20px}
+.navbar a{color:var(--acc);text-decoration:none;font-weight:600;font-size:.9rem}
+.wrap{flex:1;max-width:680px;width:100%;margin:0 auto;padding:32px 20px}
+h1{font-size:1.5rem;margin-bottom:6px}
+.sub{color:var(--mut);font-size:.9rem;margin-bottom:24px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px}
+.card+.card{margin-top:18px}
+h2{font-size:1.05rem;color:var(--acc);margin-bottom:6px}
+label{display:block;font-weight:600;font-size:.85rem;margin:14px 0 6px}
+input,select{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:12px;font-size:1rem;font-family:inherit}
+.row{display:flex;gap:12px}.row>div{flex:1}
+.btn{width:100%;margin-top:18px;background:var(--acc);color:#04211a;border:none;border-radius:12px;padding:13px;font-size:1rem;font-weight:700;cursor:pointer}
+.btn:hover{filter:brightness(1.06)}
+.out{margin-top:16px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:16px;font-size:1.05rem;display:none}
+.out b{color:var(--acc)}
+.foot{text-align:center;padding:22px 20px 30px}
+.fbtn{display:inline-flex;align-items:center;gap:7px;background:var(--wa);color:#06210f;text-decoration:none;font-weight:700;font-size:.8rem;padding:9px 16px;border-radius:999px;margin-bottom:10px}
+.foot div{color:var(--mut);font-size:.75rem}.foot b{color:var(--acc)}
+</style>
+</head>
+<body>
+<nav class="navbar"><a href="index.html">🏠 Voltar ao Início</a></nav>
+<div class="wrap">
+  <h1>📅 Calculadora de Prazos</h1>
+  <p class="sub">Some dias a uma data (corridos ou úteis) ou calcule a diferença entre duas datas.</p>
+
+  <div class="card">
+    <h2>Somar prazo a uma data</h2>
+    <div class="row">
+      <div><label>Data inicial</label><input type="date" id="d1"></div>
+      <div><label>Dias</label><input type="number" id="dias" placeholder="30"></div>
+    </div>
+    <label>Tipo de contagem</label>
+    <select id="tipo"><option value="corridos">Dias corridos</option><option value="uteis">Dias úteis (pula fins de semana)</option></select>
+    <button class="btn" onclick="somar()">Calcular data final</button>
+    <div class="out" id="outSoma"></div>
+  </div>
+
+  <div class="card">
+    <h2>Diferença entre datas</h2>
+    <div class="row">
+      <div><label>De</label><input type="date" id="da"></div>
+      <div><label>Até</label><input type="date" id="db"></div>
+    </div>
+    <button class="btn" onclick="diff()">Calcular diferença</button>
+    <div class="out" id="outDiff"></div>
+  </div>
+</div>
+<div class="foot">
+<a class="fbtn" href="https://wa.me/5511985926457?text=Ol%C3%A1%20Jackson!%20Reportando%20um%20bug%2Fsugest%C3%A3o%20na%20Calculadora%20de%20Prazos%3A%20" target="_blank" rel="noopener">💬 Reportar bug ou sugerir função</a>
+<div>Desenvolvido por <b>Jackson Gomes</b></div>
+</div>
+<script>
+const dias_sem=['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+function parse(v){ if(!v) return null; const [y,m,d]=v.split('-').map(Number); return new Date(y,m-1,d); }
+function fmt(dt){ return dt.toLocaleDateString('pt-BR')+' ('+dias_sem[dt.getDay()]+')'; }
+function somar(){
+  const d1=parse(document.getElementById('d1').value); const n=parseInt(document.getElementById('dias').value);
+  const tipo=document.getElementById('tipo').value; const out=document.getElementById('outSoma');
+  if(!d1||isNaN(n)){ out.style.display='block'; out.innerHTML='Preencha a data inicial e os dias.'; return; }
+  let dt=new Date(d1);
+  if(tipo==='corridos'){ dt.setDate(dt.getDate()+n); }
+  else{ let c=0; while(c<n){ dt.setDate(dt.getDate()+1); const wd=dt.getDay(); if(wd!==0&&wd!==6) c++; } }
+  out.style.display='block';
+  out.innerHTML=`Data final: <b>${fmt(dt)}</b>`;
+}
+function diff(){
+  const a=parse(document.getElementById('da').value), b=parse(document.getElementById('db').value);
+  const out=document.getElementById('outDiff');
+  if(!a||!b){ out.style.display='block'; out.innerHTML='Preencha as duas datas.'; return; }
+  const ms=b-a; const corridos=Math.round(ms/86400000);
+  let uteis=0; const step=corridos>=0?1:-1; let dt=new Date(a);
+  for(let i=0;i!==corridos;i+=step){ dt.setDate(dt.getDate()+step); const wd=dt.getDay(); if(wd!==0&&wd!==6) uteis+=step; }
+  out.style.display='block';
+  out.innerHTML=`<b>${Math.abs(corridos)}</b> dia(s) corrido(s) · <b>${Math.abs(uteis)}</b> dia(s) útil(eis)`;
+}
+</script>
+</body>
+</html>

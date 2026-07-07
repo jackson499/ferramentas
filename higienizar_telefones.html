@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Higienizador de Telefones — Ferramentas Administrativas</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#0e1216;--panel:#171d24;--panel2:#1e2630;--line:#293440;--txt:#e6ebf0;--mut:#8593a1;--acc:#35c4a2;--wa:#25d366;--red:#e5484d}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;display:flex;flex-direction:column}
+.navbar{background:var(--panel);border-bottom:1px solid var(--line);padding:12px 20px}
+.navbar a{color:var(--acc);text-decoration:none;font-weight:600;font-size:.9rem}
+.wrap{flex:1;max-width:680px;width:100%;margin:0 auto;padding:32px 20px}
+h1{font-size:1.5rem;margin-bottom:6px}
+.sub{color:var(--mut);font-size:.9rem;margin-bottom:24px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px}
+label{display:block;font-weight:600;font-size:.85rem;margin:14px 0 6px}
+input[type=file],textarea{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:12px;font-size:1rem;font-family:inherit}
+textarea{min-height:110px;resize:vertical;font-family:Consolas,monospace}
+.btn{width:100%;margin-top:18px;background:var(--acc);color:#04211a;border:none;border-radius:12px;padding:14px;font-size:1rem;font-weight:700;cursor:pointer}
+.btn:hover{filter:brightness(1.06)}
+.btn.ghost{background:transparent;border:1px solid var(--acc);color:var(--acc);display:none}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+.stat{border-radius:12px;padding:16px;text-align:center;color:#fff}
+.stat .n{font-size:1.7rem;font-weight:800}.stat .l{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;opacity:.9;margin-top:4px}
+.s1{background:linear-gradient(135deg,#4a5568,#2d3748)}.s2{background:linear-gradient(135deg,var(--acc),#1f8f74)}.s3{background:linear-gradient(135deg,#c58a20,#9c6d15)}
+.tbl{margin-top:18px;max-height:280px;overflow:auto;background:var(--panel2);border:1px solid var(--line);border-radius:10px;font-size:.85rem;display:none}
+.tbl .r{display:flex;justify-content:space-between;padding:7px 12px;border-bottom:1px solid var(--line)}
+.tbl .ok{color:var(--acc)}.tbl .er{color:#ff9b9b}
+.foot{text-align:center;padding:22px 20px 30px}
+.fbtn{display:inline-flex;align-items:center;gap:7px;background:var(--wa);color:#06210f;text-decoration:none;font-weight:700;font-size:.8rem;padding:9px 16px;border-radius:999px;margin-bottom:10px}
+.foot div{color:var(--mut);font-size:.75rem}.foot b{color:var(--acc)}
+.hint{color:var(--mut);font-size:.8rem;margin-top:6px}
+</style>
+</head>
+<body>
+<nav class="navbar"><a href="index.html">🏠 Voltar ao Início</a></nav>
+<div class="wrap">
+  <h1>🧹 Higienizador de Telefones</h1>
+  <p class="sub">Padroniza números no formato DDI+DDD+número (55 + 10/11 dígitos) e separa os de formato errado. Roda no seu navegador.</p>
+  <div class="card">
+    <label>Importar Excel, CSV ou TXT</label>
+    <input type="file" id="file" accept=".xlsx,.xls,.csv,.txt">
+    <p class="hint">Usa a primeira coluna / um número por linha.</p>
+    <label style="margin-top:18px">Ou cole os números aqui</label>
+    <textarea id="txt" placeholder="11985926457&#10;(11) 3456-7890&#10;5511987654321"></textarea>
+    <button class="btn" onclick="processar()">Higienizar</button>
+    <div class="stats">
+      <div class="stat s1"><div class="n" id="c-total">0</div><div class="l">Total</div></div>
+      <div class="stat s2"><div class="n" id="c-ok">0</div><div class="l">Válidos</div></div>
+      <div class="stat s3"><div class="n" id="c-er">0</div><div class="l">Formato errado</div></div>
+    </div>
+    <button class="btn ghost" id="baixar" onclick="baixar()">⬇ Baixar CSV higienizado</button>
+    <div class="tbl" id="tbl"></div>
+  </div>
+</div>
+<div class="foot">
+<a class="fbtn" href="https://wa.me/5511985926457?text=Ol%C3%A1%20Jackson!%20Reportando%20um%20bug%2Fsugest%C3%A3o%20no%20Higienizador%3A%20" target="_blank" rel="noopener">💬 Reportar bug ou sugerir função</a>
+<div>Desenvolvido por <b>Jackson Gomes</b></div>
+</div>
+<script>
+let resultados=[];
+function normalizar(raw){
+  let d=(raw||'').replace(/\D/g,'').replace(/^0+/,'');
+  if(d.startsWith('55')&&(d.length===12||d.length===13)) return d;
+  if(d.length===10||d.length===11) return '55'+d;
+  return null;
+}
+function linhasDeTexto(t){
+  return t.split(/\r?\n/).map(l=>l.split(/[;,\t]/)[0].trim()).filter(l=>l.replace(/\D/g,'').length>=3);
+}
+async function processar(){
+  const file=document.getElementById('file').files[0];
+  let linhas=[];
+  try{
+    if(file){
+      const ext=(file.name.split('.').pop()||'').toLowerCase();
+      if(ext==='xlsx'||ext==='xls'){
+        const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});
+        wb.SheetNames.forEach(sn=>XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1}).forEach(r=>{ if(r[0]!=null) linhas.push(String(r[0])); }));
+        linhas=linhas.map(l=>l.trim()).filter(l=>l.replace(/\D/g,'').length>=3);
+      } else { linhas=linhasDeTexto(await file.text()); }
+    } else {
+      linhas=linhasDeTexto(document.getElementById('txt').value);
+    }
+  }catch(e){ alert('Erro ao ler o arquivo: '+e.message); return; }
+  if(!linhas.length){ alert('Nenhum número encontrado. Importe um arquivo ou cole a lista.'); return; }
+  resultados=linhas.map(o=>{ const n=normalizar(o); return {original:o,numero:n,status:n?'valido':'formato errado'}; });
+  const ok=resultados.filter(r=>r.numero).length, er=resultados.length-ok;
+  document.getElementById('c-total').innerText=resultados.length;
+  document.getElementById('c-ok').innerText=ok;
+  document.getElementById('c-er').innerText=er;
+  const tbl=document.getElementById('tbl'); tbl.style.display='block';
+  tbl.innerHTML=resultados.slice(0,500).map(r=>`<div class="r"><span>${r.original}</span><span class="${r.numero?'ok':'er'}">${r.numero||'formato errado'}</span></div>`).join('');
+  document.getElementById('baixar').style.display='block';
+}
+function baixar(){
+  const csv='original,numero_higienizado,status\n'+resultados.map(r=>`"${(r.original||'').replace(/"/g,'""')}",${r.numero||''},"${r.status}"`).join('\n');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='telefones_higienizados.csv'; a.click(); URL.revokeObjectURL(a.href);
+}
+</script>
+</body>
+</html>

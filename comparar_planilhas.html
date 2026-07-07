@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comparar Planilhas — Ferramentas Administrativas</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#0e1216;--panel:#171d24;--panel2:#1e2630;--line:#293440;--txt:#e6ebf0;--mut:#8593a1;--acc:#35c4a2;--wa:#25d366}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;display:flex;flex-direction:column}
+.navbar{background:var(--panel);border-bottom:1px solid var(--line);padding:12px 20px}
+.navbar a{color:var(--acc);text-decoration:none;font-weight:600;font-size:.9rem}
+.wrap{flex:1;max-width:760px;width:100%;margin:0 auto;padding:32px 20px}
+h1{font-size:1.5rem;margin-bottom:6px}
+.sub{color:var(--mut);font-size:.9rem;margin-bottom:24px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px}
+label{display:block;font-weight:600;font-size:.85rem;margin:14px 0 6px}
+input[type=file],select{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:12px;font-size:1rem;font-family:inherit}
+.two{display:flex;gap:14px;flex-wrap:wrap}.two>div{flex:1;min-width:220px}
+.opts{display:flex;gap:18px;margin-top:12px;flex-wrap:wrap}
+.opts label{display:flex;align-items:center;gap:7px;margin:0;font-weight:500;font-size:.85rem;cursor:pointer}.opts input{width:auto}
+.btn{width:100%;margin-top:18px;background:var(--acc);color:#04211a;border:none;border-radius:12px;padding:14px;font-size:1rem;font-weight:700;cursor:pointer}
+.btn:hover{filter:brightness(1.06)}
+.tabs{display:flex;gap:8px;margin-top:22px;flex-wrap:wrap}
+.tab{flex:1;min-width:120px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;cursor:pointer}
+.tab.active{border-color:var(--acc);color:var(--acc)}
+.tab .n{font-size:1.4rem;font-weight:800}.tab .l{font-size:.72rem;color:var(--mut)}
+.list{margin-top:16px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px;font-family:Consolas,monospace;font-size:.85rem;max-height:280px;overflow:auto;white-space:pre-wrap;display:none}
+.dl{margin-top:12px;background:transparent;border:1px solid var(--acc);color:var(--acc);border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;display:none}
+.foot{text-align:center;padding:22px 20px 30px}
+.fbtn{display:inline-flex;align-items:center;gap:7px;background:var(--wa);color:#06210f;text-decoration:none;font-weight:700;font-size:.8rem;padding:9px 16px;border-radius:999px;margin-bottom:10px}
+.foot div{color:var(--mut);font-size:.75rem}.foot b{color:var(--acc)}
+.hint{color:var(--mut);font-size:.8rem;margin-top:6px}
+</style>
+</head>
+<body>
+<nav class="navbar"><a href="index.html">🏠 Voltar ao Início</a></nav>
+<div class="wrap">
+  <h1>🔀 Comparar Planilhas</h1>
+  <p class="sub">Compara a primeira coluna de dois arquivos e mostra o que está só na A, só na B e em ambas.</p>
+  <div class="card">
+    <div class="two">
+      <div><label>Planilha A</label><input type="file" id="fa" accept=".xlsx,.xls,.csv,.txt"></div>
+      <div><label>Planilha B</label><input type="file" id="fb" accept=".xlsx,.xls,.csv,.txt"></div>
+    </div>
+    <p class="hint">Compara pela 1ª coluna (ou 1 valor por linha em TXT/CSV).</p>
+    <div class="opts">
+      <label><input type="checkbox" id="case" checked> Ignorar maiúsc./minúsc.</label>
+      <label><input type="checkbox" id="digits"> Comparar só dígitos (telefones/CPF)</label>
+    </div>
+    <button class="btn" onclick="comparar()">Comparar</button>
+    <div class="tabs" id="tabs" style="display:none">
+      <div class="tab active" data-k="soA" onclick="mostrar('soA',this)"><div class="n" id="n-soA">0</div><div class="l">Só na A</div></div>
+      <div class="tab" data-k="soB" onclick="mostrar('soB',this)"><div class="n" id="n-soB">0</div><div class="l">Só na B</div></div>
+      <div class="tab" data-k="ambas" onclick="mostrar('ambas',this)"><div class="n" id="n-ambas">0</div><div class="l">Em ambas</div></div>
+    </div>
+    <div class="list" id="list"></div>
+    <button class="dl" id="dl" onclick="baixar()">⬇ Baixar esta lista (CSV)</button>
+  </div>
+</div>
+<div class="foot">
+<a class="fbtn" href="https://wa.me/5511985926457?text=Ol%C3%A1%20Jackson!%20Reportando%20um%20bug%2Fsugest%C3%A3o%20no%20Comparar%20Planilhas%3A%20" target="_blank" rel="noopener">💬 Reportar bug ou sugerir função</a>
+<div>Desenvolvido por <b>Jackson Gomes</b></div>
+</div>
+<script>
+let dados={soA:[],soB:[],ambas:[]}, atual='soA';
+async function ler(file){
+  if(!file) return [];
+  const ext=(file.name.split('.').pop()||'').toLowerCase();
+  if(ext==='xlsx'||ext==='xls'){
+    const wb=XLSX.read(await file.arrayBuffer(),{type:'array'}); let arr=[];
+    wb.SheetNames.forEach(sn=>XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1}).forEach(r=>{ if(r[0]!=null) arr.push(String(r[0])); }));
+    return arr;
+  }
+  return (await file.text()).split(/\r?\n/).map(l=>l.split(/[;,\t]/)[0]);
+}
+function chave(v){ let s=v.trim(); if(document.getElementById('digits').checked) s=s.replace(/\D/g,''); if(document.getElementById('case').checked) s=s.toLowerCase(); return s; }
+async function comparar(){
+  const fa=document.getElementById('fa').files[0], fb=document.getElementById('fb').files[0];
+  if(!fa||!fb){ alert('Selecione as duas planilhas.'); return; }
+  const A=(await ler(fa)).map(x=>x.trim()).filter(Boolean), B=(await ler(fb)).map(x=>x.trim()).filter(Boolean);
+  const setA=new Map(), setB=new Map();
+  A.forEach(v=>{ const k=chave(v); if(k&&!setA.has(k)) setA.set(k,v); });
+  B.forEach(v=>{ const k=chave(v); if(k&&!setB.has(k)) setB.set(k,v); });
+  dados.soA=[...setA].filter(([k])=>!setB.has(k)).map(([,v])=>v);
+  dados.soB=[...setB].filter(([k])=>!setA.has(k)).map(([,v])=>v);
+  dados.ambas=[...setA].filter(([k])=>setB.has(k)).map(([,v])=>v);
+  document.getElementById('n-soA').textContent=dados.soA.length;
+  document.getElementById('n-soB').textContent=dados.soB.length;
+  document.getElementById('n-ambas').textContent=dados.ambas.length;
+  document.getElementById('tabs').style.display='flex';
+  document.getElementById('dl').style.display='block';
+  mostrar('soA',document.querySelector('.tab'));
+}
+function mostrar(k,el){
+  atual=k;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); if(el) el.classList.add('active');
+  const list=document.getElementById('list'); list.style.display='block';
+  list.textContent=dados[k].length?dados[k].slice(0,1000).join('\n'):'(vazio)';
+}
+function baixar(){
+  const blob=new Blob(['﻿'+dados[atual].join('\n')],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='comparacao_'+atual+'.csv'; a.click(); URL.revokeObjectURL(a.href);
+}
+</script>
+</body>
+</html>

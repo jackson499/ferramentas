@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerador de Link WhatsApp — Ferramentas Administrativas</title>
+<style>
+:root{--bg:#0e1216;--panel:#171d24;--panel2:#1e2630;--line:#293440;--txt:#e6ebf0;--mut:#8593a1;--acc:#35c4a2;--wa:#25d366}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;display:flex;flex-direction:column}
+.navbar{background:var(--panel);border-bottom:1px solid var(--line);padding:12px 20px}
+.navbar a{color:var(--acc);text-decoration:none;font-weight:600;font-size:.9rem}
+.wrap{flex:1;max-width:640px;width:100%;margin:0 auto;padding:32px 20px}
+h1{font-size:1.5rem;margin-bottom:6px}
+.sub{color:var(--mut);font-size:.9rem;margin-bottom:24px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px}
+label{display:block;font-weight:600;font-size:.85rem;margin:14px 0 6px}
+input,textarea{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:12px;font-size:1rem;font-family:inherit}
+textarea{min-height:90px;resize:vertical}
+.btn{width:100%;margin-top:18px;background:var(--acc);color:#04211a;border:none;border-radius:12px;padding:14px;font-size:1rem;font-weight:700;cursor:pointer}
+.btn:hover{filter:brightness(1.06)}
+.out{margin-top:18px;display:none}
+.link{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px;font-size:.9rem;word-break:break-all;color:var(--acc)}
+.acts{display:flex;gap:10px;margin-top:12px}
+.acts a,.acts button{flex:1;text-align:center;text-decoration:none;border-radius:10px;padding:11px;font-weight:700;font-size:.85rem;cursor:pointer;border:1px solid var(--line)}
+.abrir{background:var(--wa);color:#06210f;border:none}
+.copiar{background:transparent;color:var(--txt)}
+.foot{text-align:center;padding:22px 20px 30px}
+.fbtn{display:inline-flex;align-items:center;gap:7px;background:var(--wa);color:#06210f;text-decoration:none;font-weight:700;font-size:.8rem;padding:9px 16px;border-radius:999px;margin-bottom:10px}
+.foot div{color:var(--mut);font-size:.75rem}.foot b{color:var(--acc)}
+</style>
+</head>
+<body>
+<nav class="navbar"><a href="index.html">🏠 Voltar ao Início</a></nav>
+<div class="wrap">
+  <h1>🔗 Gerador de Link WhatsApp</h1>
+  <p class="sub">Cria um link wa.me com número e mensagem prontos — sem precisar salvar o contato.</p>
+  <div class="card">
+    <label>Número (com DDD)</label>
+    <input type="text" id="num" placeholder="11 98592-6457" inputmode="tel" oninput="gerar()">
+    <label>Mensagem (opcional)</label>
+    <textarea id="msg" placeholder="Olá! Gostaria de falar sobre..." oninput="gerar()"></textarea>
+    <button class="btn" onclick="gerar()">Gerar link</button>
+    <div class="out" id="out">
+      <div class="link" id="link"></div>
+      <div class="acts">
+        <a class="abrir" id="abrir" target="_blank" rel="noopener">💬 Abrir conversa</a>
+        <button class="copiar" onclick="copiar()">📋 Copiar link</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="foot">
+<a class="fbtn" href="https://wa.me/5511985926457?text=Ol%C3%A1%20Jackson!%20Reportando%20um%20bug%2Fsugest%C3%A3o%20no%20Gerador%20de%20Link%20WhatsApp%3A%20" target="_blank" rel="noopener">💬 Reportar bug ou sugerir função</a>
+<div>Desenvolvido por <b>Jackson Gomes</b></div>
+</div>
+<script>
+function gerar(){
+  let d=document.getElementById('num').value.replace(/\D/g,'').replace(/^0+/,'');
+  const out=document.getElementById('out');
+  if(d.length<10){ out.style.display='none'; return; }
+  if(!d.startsWith('55')&&(d.length===10||d.length===11)) d='55'+d;
+  const msg=document.getElementById('msg').value.trim();
+  let url='https://wa.me/'+d;
+  if(msg) url+='?text='+encodeURIComponent(msg);
+  document.getElementById('link').textContent=url;
+  document.getElementById('abrir').href=url;
+  out.style.display='block';
+}
+function copiar(){ navigator.clipboard.writeText(document.getElementById('link').textContent); event.target.textContent='✔ Copiado'; setTimeout(()=>event.target.textContent='📋 Copiar link',1500); }
+</script>
+</body>
+</html>

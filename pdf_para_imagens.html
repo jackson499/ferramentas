@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF para Imagens — Ferramentas Administrativas</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{--bg:#0e1216;--panel:#171d24;--panel2:#1e2630;--line:#293440;--txt:#e6ebf0;--mut:#8593a1;--acc:#35c4a2;--wa:#25d366}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;display:flex;flex-direction:column}
+.navbar{background:var(--panel);border-bottom:1px solid var(--line);padding:12px 20px}
+.navbar a{color:var(--acc);text-decoration:none;font-weight:600;font-size:.9rem}
+.wrap{flex:1;max-width:760px;width:100%;margin:0 auto;padding:32px 20px}
+h1{font-size:1.5rem;margin-bottom:6px}
+.sub{color:var(--mut);font-size:.9rem;margin-bottom:24px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px}
+label{display:block;font-weight:600;font-size:.85rem;margin:14px 0 6px}
+input,select{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:12px;font-size:1rem;font-family:inherit}
+.row{display:flex;gap:12px}.row>div{flex:1}
+.btn{width:100%;margin-top:18px;background:var(--acc);color:#04211a;border:none;border-radius:12px;padding:14px;font-size:1rem;font-weight:700;cursor:pointer}
+.btn:hover{filter:brightness(1.06)}.btn:disabled{opacity:.5;cursor:not-allowed}
+.status{margin-top:14px;color:var(--mut);font-size:.88rem;text-align:center;display:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-top:18px}
+.thumb{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center}
+.thumb img{width:100%;border-radius:6px;background:#fff}
+.thumb a{display:block;margin-top:6px;color:var(--acc);text-decoration:none;font-size:.78rem;font-weight:600}
+.foot{text-align:center;padding:22px 20px 30px}
+.fbtn{display:inline-flex;align-items:center;gap:7px;background:var(--wa);color:#06210f;text-decoration:none;font-weight:700;font-size:.8rem;padding:9px 16px;border-radius:999px;margin-bottom:10px}
+.foot div{color:var(--mut);font-size:.75rem}.foot b{color:var(--acc)}
+</style>
+</head>
+<body>
+<nav class="navbar"><a href="index.html">🏠 Voltar ao Início</a></nav>
+<div class="wrap">
+  <h1>🖼️ PDF para Imagens</h1>
+  <p class="sub">Transforma cada página do PDF em imagem PNG. Baixe uma a uma ou tudo num ZIP.</p>
+  <div class="card">
+    <label>Arquivo PDF</label>
+    <input type="file" id="file" accept="application/pdf">
+    <div class="row">
+      <div><label>Qualidade</label><select id="scale"><option value="1.5">Padrão</option><option value="2" selected>Alta</option><option value="3">Máxima</option></select></div>
+    </div>
+    <button class="btn" id="btn" onclick="converter()">Converter</button>
+    <div class="status" id="status"></div>
+    <button class="btn" id="zip" style="display:none;background:transparent;border:1px solid var(--acc);color:var(--acc)" onclick="baixarZip()">⬇ Baixar todas (ZIP)</button>
+    <div class="grid" id="grid"></div>
+  </div>
+</div>
+<div class="foot">
+<a class="fbtn" href="https://wa.me/5511985926457?text=Ol%C3%A1%20Jackson!%20Reportando%20um%20bug%2Fsugest%C3%A3o%20no%20PDF%20para%20Imagens%3A%20" target="_blank" rel="noopener">💬 Reportar bug ou sugerir função</a>
+<div>Desenvolvido por <b>Jackson Gomes</b></div>
+</div>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+let imagens=[];
+async function converter(){
+  const file=document.getElementById('file').files[0]; const btn=document.getElementById('btn');
+  const status=document.getElementById('status'); const grid=document.getElementById('grid');
+  if(!file){ alert('Selecione um PDF.'); return; }
+  btn.disabled=true; btn.textContent='Convertendo...'; status.style.display='block'; grid.innerHTML=''; imagens=[];
+  document.getElementById('zip').style.display='none';
+  try{
+    const data=await file.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data}).promise;
+    const scale=+document.getElementById('scale').value;
+    for(let i=1;i<=pdf.numPages;i++){
+      status.textContent=`Página ${i} de ${pdf.numPages}...`;
+      const page=await pdf.getPage(i);
+      const vp=page.getViewport({scale});
+      const canvas=document.createElement('canvas'); canvas.width=vp.width; canvas.height=vp.height;
+      await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
+      const url=canvas.toDataURL('image/png');
+      imagens.push({name:`pagina_${String(i).padStart(2,'0')}.png`,url});
+      const div=document.createElement('div'); div.className='thumb';
+      div.innerHTML=`<img src="${url}"><a href="${url}" download="pagina_${String(i).padStart(2,'0')}.png">⬇ Página ${i}</a>`;
+      grid.appendChild(div);
+    }
+    status.textContent=`${pdf.numPages} página(s) convertida(s).`;
+    if(imagens.length>1) document.getElementById('zip').style.display='block';
+  }catch(e){ status.textContent='Erro: '+e.message; }
+  finally{ btn.disabled=false; btn.textContent='Converter'; }
+}
+async function baixarZip(){
+  const zip=new JSZip();
+  imagens.forEach(im=>zip.file(im.name,im.url.split(',')[1],{base64:true}));
+  const blob=await zip.generateAsync({type:'blob'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='paginas_pdf.zip'; a.click(); URL.revokeObjectURL(a.href);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Numerar Páginas de PDF — Ferramentas Administrativas</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<style>
+:root{--bg:#0e1216;--panel:#171d24;--panel2:#1e2630;--line:#293440;--txt:#e6ebf0;--mut:#8593a1;--acc:#35c4a2;--wa:#25d366}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;display:flex;flex-direction:column}
+.navbar{background:var(--panel);border-bottom:1px solid var(--line);padding:12px 20px}
+.navbar a{color:var(--acc);text-decoration:none;font-weight:600;font-size:.9rem}
+.wrap{flex:1;max-width:680px;width:100%;margin:0 auto;padding:32px 20px}
+h1{font-size:1.5rem;margin-bottom:6px}
+.sub{color:var(--mut);font-size:.9rem;margin-bottom:24px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px}
+label{display:block;font-weight:600;font-size:.85rem;margin:14px 0 6px}
+input,select{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:12px;font-size:1rem;font-family:inherit}
+.row{display:flex;gap:12px}.row>div{flex:1}
+.btn{width:100%;margin-top:18px;background:var(--acc);color:#04211a;border:none;border-radius:12px;padding:14px;font-size:1rem;font-weight:700;cursor:pointer}
+.btn:hover{filter:brightness(1.06)}.btn:disabled{opacity:.5;cursor:not-allowed}
+.hint{color:var(--mut);font-size:.8rem;margin-top:6px}
+.foot{text-align:center;padding:22px 20px 30px}
+.fbtn{display:inline-flex;align-items:center;gap:7px;background:var(--wa);color:#06210f;text-decoration:none;font-weight:700;font-size:.8rem;padding:9px 16px;border-radius:999px;margin-bottom:10px}
+.foot div{color:var(--mut);font-size:.75rem}.foot b{color:var(--acc)}
+</style>
+</head>
+<body>
+<nav class="navbar"><a href="index.html">🏠 Voltar ao Início</a></nav>
+<div class="wrap">
+  <h1>🔢 Numerar Páginas de PDF</h1>
+  <p class="sub">Adiciona numeração automática nas páginas do PDF. Escolha o formato e a posição.</p>
+  <div class="card">
+    <label>Arquivo PDF</label>
+    <input type="file" id="file" accept="application/pdf">
+    <div class="row">
+      <div><label>Formato</label>
+        <select id="fmt"><option value="n">1, 2, 3…</option><option value="np">Página 1</option><option value="ntotal">1 de N</option><option value="pntotal">Página 1 de N</option></select>
+      </div>
+      <div><label>Posição</label>
+        <select id="pos"><option value="bc">Rodapé centro</option><option value="br">Rodapé direita</option><option value="bl">Rodapé esquerda</option><option value="tc">Topo centro</option></select>
+      </div>
+    </div>
+    <div class="row">
+      <div><label>Tamanho</label><select id="size"><option>9</option><option selected>11</option><option>14</option></select></div>
+      <div><label>Começar em</label><input type="number" id="start" value="1" min="1"></div>
+    </div>
+    <button class="btn" id="btn" onclick="numerar()">Numerar e baixar</button>
+  </div>
+</div>
+<div class="foot">
+<a class="fbtn" href="https://wa.me/5511985926457?text=Ol%C3%A1%20Jackson!%20Reportando%20um%20bug%2Fsugest%C3%A3o%20no%20Numerar%20PDF%3A%20" target="_blank" rel="noopener">💬 Reportar bug ou sugerir função</a>
+<div>Desenvolvido por <b>Jackson Gomes</b></div>
+</div>
+<script>
+async function numerar(){
+  const file=document.getElementById('file').files[0]; const btn=document.getElementById('btn');
+  if(!file){ alert('Selecione um PDF.'); return; }
+  btn.disabled=true; btn.textContent='Processando...';
+  try{
+    const {PDFDocument,rgb,StandardFonts}=PDFLib;
+    const pdf=await PDFDocument.load(await file.arrayBuffer());
+    const font=await pdf.embedFont(StandardFonts.Helvetica);
+    const size=+document.getElementById('size').value;
+    const fmt=document.getElementById('fmt').value, pos=document.getElementById('pos').value;
+    const start=parseInt(document.getElementById('start').value)||1;
+    const pages=pdf.getPages(); const total=pages.length;
+    pages.forEach((p,i)=>{
+      const n=start+i;
+      let t;
+      if(fmt==='n') t=''+n;
+      else if(fmt==='np') t='Página '+n;
+      else if(fmt==='ntotal') t=n+' de '+total;
+      else t='Página '+n+' de '+total;
+      const {width,height}=p.getSize(); const m=26; const tw=font.widthOfTextAtSize(t,size); let x,y;
+      const top=height-size-m, bot=m;
+      switch(pos){
+        case 'bl': x=m; y=bot; break;
+        case 'br': x=width-tw-m; y=bot; break;
+        case 'tc': x=(width-tw)/2; y=top; break;
+        default: x=(width-tw)/2; y=bot;
+      }
+      p.drawText(t,{x,y,size,font,color:rgb(.25,.25,.25)});
+    });
+    const bytes=await pdf.save();
+    const blob=new Blob([bytes],{type:'application/pdf'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='PDF_numerado.pdf'; a.click(); URL.revokeObjectURL(a.href);
+  }catch(e){ alert('Erro ao processar o PDF: '+e.message); }
+  finally{ btn.disabled=false; btn.textContent='Numerar e baixar'; }
+}
+</script>
+</body>
+</html>
