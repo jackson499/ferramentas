@@ -16,12 +16,14 @@ app.use(express.static(path.join(__dirname)));
 // ==========================================
 // Senhas ficam no config.json (edite lá e reinicie — não precisa mexer no código).
 const CONFIG_FILE = path.join(__dirname, 'config.json');
-const cfgPadrao = { senhaAcesso: '', senhaHistorico: '1245', senhaApagar: '1590' };
+const cfgPadrao = { senhaAcesso: '', senhaHistorico: '1245', senhaApagar: '1590', carteiras: ['Bradesco', 'BTG', 'ADM'] };
 let config = {};
 try { config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')); } catch (_) { config = {}; }
 config = Object.assign({}, cfgPadrao, config);
-// Cria o config.json na primeira vez, já com as senhas padrão, para facilitar a edição.
-try { if (!fs.existsSync(CONFIG_FILE)) fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf8'); } catch (_) { /* ignora */ }
+if (!Array.isArray(config.carteiras)) config.carteiras = cfgPadrao.carteiras.slice();
+function salvarConfig() { try { fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf8'); } catch (_) { /* ignora */ } }
+// Cria o config.json na primeira vez, já com os padrões, para facilitar a edição.
+try { if (!fs.existsSync(CONFIG_FILE)) salvarConfig(); } catch (_) { /* ignora */ }
 
 const NUM_SESSOES = parseInt(process.env.NUM_SESSOES || '4', 10);
 // Ritmo "equilibrado": cada número (sessão) espera entre 3s e 6s
@@ -243,6 +245,24 @@ app.get('/api/status', (req, res) => {
         conectado: conectados > 0,
         qrImage: (sessoes[0] && !sessoes[0].ready) ? sessoes[0].qr : ''
     });
+});
+
+// Lista de carteiras (para a lista de seleção do painel).
+app.get('/api/carteiras', (req, res) => {
+    res.json({ ok: true, carteiras: config.carteiras || [] });
+});
+
+// Adiciona uma nova carteira à lista (fica salva no config.json).
+app.post('/api/carteiras/adicionar', (req, res) => {
+    const nome = ((req.body && req.body.nome) || '').toString().trim().slice(0, 40);
+    if (!nome) return res.status(400).json({ erro: 'Nome da carteira vazio.' });
+    if (!Array.isArray(config.carteiras)) config.carteiras = [];
+    if (!config.carteiras.some(c => c.toLowerCase() === nome.toLowerCase())) {
+        config.carteiras.push(nome);
+        config.carteiras.sort((a, b) => a.localeCompare(b, 'pt-BR'));
+        salvarConfig();
+    }
+    res.json({ ok: true, carteiras: config.carteiras });
 });
 
 app.post('/api/validar', async (req, res) => {

@@ -1,5 +1,10 @@
 {
   "senhaAcesso": "",
   "senhaHistorico": "1245",
-  "senhaApagar": "1590"
+  "senhaApagar": "1590",
+  "carteiras": [
+    "Bradesco",
+    "BTG",
+    "ADM"
+  ]
 }

@@ -164,9 +164,11 @@
     </div>
 
     <label style="display:block;font-weight:600;font-size:.85rem;margin-top:16px">Carteira <span style="color:var(--red)">*</span></label>
-    <input type="text" id="carteira" placeholder="Ex.: Bradesco Comercial" style="width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;font-size:1rem" list="carteiras-recentes">
-    <datalist id="carteiras-recentes"></datalist>
-    <div class="hint" style="color:var(--mut);font-size:.8rem;margin-top:6px">A carteira fica salva junto do resultado — dá pra filtrar por ela no histórico.</div>
+    <select id="carteira" onchange="onCarteiraChange()" style="width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;font-size:1rem;background:#fff;color:var(--txt)">
+      <option value="">— selecione a carteira —</option>
+      <option value="__add__">➕ Adicionar nova...</option>
+    </select>
+    <div class="hint" style="color:var(--mut);font-size:.8rem;margin-top:6px">Obrigatório. A carteira fica salva junto do resultado — dá pra filtrar por ela no histórico.</div>
 
     <label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:.86rem;cursor:pointer">
       <input type="checkbox" id="optNome" style="width:16px;height:16px"> Trazer nome do WhatsApp <span style="color:var(--mut)">(mais lento; nem todo número mostra, por privacidade)</span>
@@ -237,6 +239,7 @@
     let ultimoConectados = 0;
     let pausado = false, cancelado = false;
     let carteiraAtual = '';
+    let carteirasCarregadas = false;
 
     function headers() { return { 'Content-Type': 'application/json', 'x-senha': SENHA }; }
 
@@ -344,6 +347,7 @@
                 document.getElementById('app-area').style.display = 'block';
                 document.getElementById('conectados-info').innerHTML =
                     `<span class="dot"></span> ${ultimoConectados} de ${data.total} números conectados`;
+                if (!carteirasCarregadas) carregarCarteiras();
             } else {
                 document.getElementById('app-area').style.display = 'none';
             }
@@ -583,6 +587,40 @@
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'numeros');
         XLSX.writeFile(wb, 'modelo_importacao_validador.xlsx');
+    }
+
+    // ===== CARTEIRAS (lista de seleção) =====
+    async function carregarCarteiras() {
+        try {
+            const res = await fetch(`${API_BASE}/api/carteiras`, { headers: headers() });
+            const r = await res.json();
+            preencherSelectCarteira(r.carteiras || []);
+            carteirasCarregadas = true;
+        } catch (e) { /* servidor pode estar subindo ainda */ }
+    }
+    function preencherSelectCarteira(lista) {
+        const sel = document.getElementById('carteira');
+        if (!sel) return;
+        const atual = sel.value;
+        sel.innerHTML = '<option value="">— selecione a carteira —</option>'
+            + lista.map(c => `<option value="${String(c).replace(/"/g, '&quot;')}">${c}</option>`).join('')
+            + '<option value="__add__">➕ Adicionar nova...</option>';
+        if (atual && atual !== '__add__') sel.value = atual;
+    }
+    async function onCarteiraChange() {
+        const sel = document.getElementById('carteira');
+        if (sel.value !== '__add__') return;
+        const nome = prompt('Nome da nova carteira:');
+        sel.value = '';
+        if (!nome || !nome.trim()) return;
+        try {
+            const res = await fetch(`${API_BASE}/api/carteiras/adicionar`, {
+                method: 'POST', headers: headers(), body: JSON.stringify({ nome: nome.trim() })
+            });
+            const r = await res.json();
+            if (res.ok) { preencherSelectCarteira(r.carteiras || []); sel.value = nome.trim(); }
+            else alert(r.erro || 'Erro ao adicionar carteira.');
+        } catch (e) { alert('Erro ao adicionar carteira.'); }
     }
 
     async function iniciarValidacao() {
