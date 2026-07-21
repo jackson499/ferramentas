@@ -50,6 +50,33 @@ function limparLock(id) {
 }
 
 // ==========================================
+// CACHE DE VALIDAÇÕES (evita reconsultar o mesmo número)
+// ==========================================
+const CACHE_FILE = path.join(__dirname, 'cache_validacao.json');
+const CACHE_TTL_MS = parseInt(process.env.CACHE_TTL_DIAS || '7', 10) * 24 * 60 * 60 * 1000;
+let cache = {};
+try { cache = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8')); } catch (_) { cache = {}; }
+let cacheDirty = false;
+function salvarCache() {
+    if (!cacheDirty) return;
+    cacheDirty = false;
+    try { fs.writeFile(CACHE_FILE, JSON.stringify(cache), () => {}); } catch (_) { /* ignora */ }
+}
+setInterval(salvarCache, 5000);
+
+// Busca o nome público do WhatsApp (best effort — pode vir vazio por privacidade).
+async function buscarNome(client, whatsappId) {
+    try {
+        const c = await client.getContactById(whatsappId);
+        return (c && (c.verifiedName || c.pushname || c.name || '')) || '';
+    } catch (_) { return ''; }
+}
+
+// Pasta onde os resultados ficam salvos no servidor.
+const RESULTADOS_DIR = path.join(__dirname, 'resultados');
+try { fs.mkdirSync(RESULTADOS_DIR, { recursive: true }); } catch (_) { /* ignora */ }
+
+// ==========================================
 // SESSÕES
 // ==========================================
 const sessoes = [];
@@ -207,20 +234,42 @@ app.post('/api/validar', async (req, res) => {
     if (numero.length < 8 || numero.length > 15) {
         return res.status(400).json({ erro: 'Numero em formato invalido.', valido: false });
     }
+    const trazerNome = !!req.body.trazerNome;
+
+    // 1) CACHE — se já consultamos esse número recentemente, devolve na hora.
+    const cached = cache[numero];
+    if (cached && (Date.now() - cached.ts) < CACHE_TTL_MS && (!trazerNome || cached.nome)) {
+        return res.json({ valido: cached.valido, nome: cached.nome || '', cache: true });
+    }
+
     let s;
     try { s = await pegarSessao(); }
     catch (e) { return res.status(503).json({ erro: e.message }); }
 
     const whatsappId = `${numero}@c.us`;
-    try {
-        const registrado = await s.client.isRegisteredUser(whatsappId);
-        liberarSessao(s);
-        res.json({ valido: registrado, sessao: s.id });
-    } catch (error) {
-        liberarSessao(s);
-        console.error(`[${s.id}] Erro ao consultar ${numero}:`, error.message);
-        res.status(500).json({ erro: 'Erro interno ao consultar numero.' });
+    // 2) RETRY — tenta até 3 vezes em caso de erro temporário.
+    let tentativas = 0, ultimoErro;
+    while (tentativas < 3) {
+        tentativas++;
+        try {
+            const numberId = await s.client.getNumberId(numero); // null se não tiver WhatsApp
+            const registrado = !!numberId;
+            let nome = '';
+            if (registrado && trazerNome) {
+                nome = await buscarNome(s.client, (numberId && numberId._serialized) || whatsappId);
+            }
+            liberarSessao(s);
+            cache[numero] = { valido: registrado, nome, ts: Date.now() };
+            cacheDirty = true;
+            return res.json({ valido: registrado, nome, sessao: s.id });
+        } catch (error) {
+            ultimoErro = error;
+            if (tentativas < 3) await sleep(800);
+        }
     }
+    liberarSessao(s);
+    console.error(`[${s.id}] Erro ao consultar ${numero}:`, ultimoErro && ultimoErro.message);
+    res.status(500).json({ erro: 'Erro interno ao consultar numero.' });
 });
 
 // Desconecta (desloga) um número. Ele volta a exibir o QR para você
@@ -286,6 +335,50 @@ app.post('/api/reiniciar', (req, res) => {
         console.error('Erro ao reiniciar:', e.message);
     }
 });
+
+// Salva o resultado da validação numa pasta no servidor (resultados/).
+app.post('/api/salvar-resultado', (req, res) => {
+    const { linhas, cabecalho } = req.body || {};
+    if (!Array.isArray(linhas) || !linhas.length) return res.status(400).json({ erro: 'Sem dados para salvar.' });
+    const agora = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const nomeArq = `resultado_${agora.getFullYear()}-${pad(agora.getMonth() + 1)}-${pad(agora.getDate())}_${pad(agora.getHours())}${pad(agora.getMinutes())}${pad(agora.getSeconds())}.csv`;
+    const caminho = path.join(RESULTADOS_DIR, nomeArq);
+    const esc = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const todas = (Array.isArray(cabecalho) ? [cabecalho] : []).concat(linhas);
+    const csv = '﻿' + todas.map(r => (Array.isArray(r) ? r : [r]).map(esc).join(',')).join('\r\n');
+    try {
+        fs.writeFileSync(caminho, csv, 'utf8');
+        console.log(`Resultado salvo no servidor: ${nomeArq} (${linhas.length} linhas)`);
+        res.json({ ok: true, arquivo: 'resultados/' + nomeArq, total: linhas.length });
+    } catch (e) {
+        console.error('Erro ao salvar resultado:', e.message);
+        res.status(500).json({ erro: 'Erro ao salvar no servidor.' });
+    }
+});
+
+// ==========================================
+// WATCHDOG — recupera sozinho sessão travada (sem QR e sem conectar).
+// ==========================================
+const STUCK_MS = 70000;
+setInterval(() => {
+    const agora = Date.now();
+    sessoes.forEach(s => {
+        if (s.ready || s.reconectando || s.desconectandoManual) { s._semQrDesde = 0; return; }
+        if (s.qr) { s._semQrDesde = 0; return; } // tem QR à mostra, tudo bem
+        if (!s._semQrDesde) { s._semQrDesde = agora; return; }
+        if (agora - s._semQrDesde > STUCK_MS) {
+            console.warn(`[${s.id}] Travada sem QR — recuperando automaticamente...`);
+            s._semQrDesde = 0;
+            s.reconectando = true;
+            Promise.race([s.client.destroy(), sleep(4000)]).catch(() => {}).finally(() => {
+                matarChromeDaSessao(s.id);
+                limparLock(s.id);
+                setTimeout(() => { s.reconectando = false; recriarClient(s); }, 1200);
+            });
+        }
+    });
+}, 15000);
 
 const PORT = process.env.PORT || 3000;
 // Escuta em todas as interfaces para permitir acesso pela rede local/VPN.

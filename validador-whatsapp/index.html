@@ -159,12 +159,33 @@
 
     <div class="drop" style="margin-top:18px">
       <input type="file" id="fileInput" accept=".csv,.txt,.xlsx,.xls">
-      <div class="hint">Excel, CSV ou TXT. Coluna <b>numero</b> obrigatória; <b>cpf_cnpj</b> e <b>nome</b> são opcionais e voltam na planilha de resultado. Ele confere o formato (DDI+DDD+número) e depois checa o WhatsApp.</div>
+      <div class="hint">Excel, CSV ou TXT. Coluna <b>numero</b> obrigatória; <b>cpf_cnpj</b> e <b>nome</b> são opcionais e voltam na planilha. Duplicados são removidos automaticamente.</div>
       <button type="button" class="btn btn-refresh" style="margin-top:12px" onclick="baixarModelo()">⬇ Baixar modelo de importação</button>
     </div>
 
+    <label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:.86rem;cursor:pointer">
+      <input type="checkbox" id="optNome" style="width:16px;height:16px"> Trazer nome do WhatsApp <span style="color:var(--mut)">(mais lento; nem todo número mostra, por privacidade)</span>
+    </label>
+
     <button class="btn-primary" id="btnProcessar" onclick="iniciarValidacao()">Higienizar e Validar</button>
-    <button class="btn-ghost" id="btnBaixar" onclick="baixarResultados()">⬇ Baixar Resultados (CSV)</button>
+
+    <div id="progresso-wrap" style="display:none;margin-top:16px">
+      <div style="display:flex;justify-content:space-between;font-size:.82rem;color:var(--mut);margin-bottom:6px">
+        <span id="prog-txt">0 / 0</span><span id="prog-eta"></span>
+      </div>
+      <div style="background:var(--soft);border:1px solid var(--line);border-radius:999px;height:12px;overflow:hidden">
+        <div id="prog-bar" style="height:100%;width:0;background:linear-gradient(90deg,var(--wa),var(--wa-dark));transition:width .25s"></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <button class="btn btn-refresh" style="margin-top:0;flex:1" id="btnPausar" onclick="pausarRetomar()">⏸ Pausar</button>
+        <button class="btn btn-disconnect" style="margin-top:0;flex:1" id="btnCancelar" onclick="cancelarProcesso()">✖ Cancelar</button>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:10px">
+      <button class="btn-ghost" id="btnBaixar" style="margin-top:0" onclick="baixarExcel()">⬇ Baixar Excel</button>
+      <button class="btn-ghost" id="btnBaixarCsv" style="margin-top:0" onclick="baixarResultados()">⬇ Baixar CSV</button>
+    </div>
 
     <div class="stats" style="grid-template-columns:repeat(auto-fit,minmax(78px,1fr))">
       <div class="stat s-total"><div class="n" id="count-total">0</div><div class="l">Total</div></div>
@@ -192,10 +213,12 @@
 
 <script>
     const API_BASE = '';
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
     let resultados = [];
     let SENHA = '';
     let monitorando = false;
     let ultimoConectados = 0;
+    let pausado = false, cancelado = false;
 
     function headers() { return { 'Content-Type': 'application/json', 'x-senha': SENHA }; }
 
@@ -452,6 +475,7 @@
         btn.innerText = 'Processando...';
         document.getElementById('log').innerHTML = '';
         document.getElementById('btnBaixar').style.display = 'none';
+        document.getElementById('btnBaixarCsv').style.display = 'none';
         resultados = [];
 
         const file = fileInput.files[0];
@@ -476,7 +500,34 @@
         }
     }
 
+    // Remove números duplicados (mantém o primeiro), somando a economia de consultas.
+    function dedup(registros) {
+        const visto = new Set(); const saida = [];
+        registros.forEach(r => {
+            const chave = normalizarNumero(r.original) || r.original.replace(/\D/g, '');
+            if (visto.has(chave)) return;
+            visto.add(chave); saida.push(r);
+        });
+        return saida;
+    }
+
+    function pausarRetomar() {
+        pausado = !pausado;
+        document.getElementById('btnPausar').innerText = pausado ? '▶ Retomar' : '⏸ Pausar';
+        adicionarLog(pausado ? 'Pausado.' : 'Retomando...');
+    }
+    function cancelarProcesso() {
+        if (!confirm('Cancelar a validação? Os resultados já consultados serão mantidos.')) return;
+        cancelado = true; pausado = false;
+    }
+
     async function processarRegistros(registros) {
+        const antes = registros.length;
+        registros = dedup(registros);
+        const removidos = antes - registros.length;
+        const dataConsulta = new Date().toLocaleString('pt-BR');
+        const trazerNome = document.getElementById('optNome').checked;
+
         document.getElementById('count-total').innerText = registros.length;
         let validCount = 0, invalidCount = 0, fmtCount = 0;
         document.getElementById('count-valid').innerText = 0;
@@ -484,30 +535,49 @@
         document.getElementById('count-fmt').innerText = 0;
 
         // 1) HIGIENIZAÇÃO — confere o formato antes de chamar a API
-        registros.forEach(it => { it.numero = normalizarNumero(it.original); if (!it.numero) { it.status = 'formato errado'; fmtCount++; } });
+        registros.forEach(it => { it.numero = normalizarNumero(it.original); it.data = dataConsulta; if (!it.numero) { it.status = 'formato errado'; fmtCount++; } });
         document.getElementById('count-fmt').innerText = fmtCount;
 
         // 2) VERIFICAÇÃO — só os de formato válido vão para a API
         const paraChecar = registros.filter(it => it.numero);
         const concurrency = Math.max(1, ultimoConectados);
-        adicionarLog(`${registros.length} linha(s) — ${fmtCount} com formato errado. Verificando WhatsApp de ${paraChecar.length} número(s) com ${concurrency} sessão(ões)...`);
+        if (removidos > 0) adicionarLog(`${removidos} número(s) duplicado(s) removido(s).`);
+        adicionarLog(`${registros.length} único(s) — ${fmtCount} com formato errado. Verificando ${paraChecar.length} no WhatsApp com ${concurrency} sessão(ões)...`);
+
+        // Progresso + controles
+        cancelado = false; pausado = false;
+        document.getElementById('btnPausar').innerText = '⏸ Pausar';
+        const progWrap = document.getElementById('progresso-wrap'); progWrap.style.display = 'block';
+        const total = paraChecar.length; let feitos = 0; const inicio = Date.now();
+        function atualizaProg() {
+            const pct = total ? Math.round(feitos / total * 100) : 100;
+            document.getElementById('prog-bar').style.width = pct + '%';
+            document.getElementById('prog-txt').innerText = `${feitos} / ${total} (${pct}%)`;
+            if (feitos > 0 && feitos < total) {
+                const s = Math.round((Date.now() - inicio) / feitos * (total - feitos) / 1000);
+                document.getElementById('prog-eta').innerText = s > 0 ? `~${s > 60 ? Math.round(s / 60) + ' min' : s + 's'} restantes` : '';
+            } else document.getElementById('prog-eta').innerText = '';
+        }
+        atualizaProg();
 
         let idx = 0;
         async function worker() {
             while (idx < paraChecar.length) {
+                if (cancelado) return;
+                while (pausado && !cancelado) await sleep(300);
+                if (cancelado) return;
                 const it = paraChecar[idx++];
-                adicionarLog(`Consultando: ${it.numero}...`);
                 try {
                     const res = await fetch(`${API_BASE}/api/validar`, {
                         method: 'POST', headers: headers(),
-                        body: JSON.stringify({ numero: it.numero })
+                        body: JSON.stringify({ numero: it.numero, trazerNome })
                     });
                     const r = await res.json();
                     if (!res.ok) {
                         adicionarLog(`Erro ao consultar ${it.numero}: ${r.erro || res.status}`, true);
                         it.status = 'erro';
                     } else if (r.valido) {
-                        it.status = 'possui whatsapp';
+                        it.status = 'possui whatsapp'; it.nomeWpp = r.nome || '';
                         validCount++; document.getElementById('count-valid').innerText = validCount;
                     } else {
                         it.status = 'nao possui';
@@ -517,6 +587,7 @@
                     adicionarLog(`Erro de conexão ao consultar ${it.numero}`, true);
                     it.status = 'erro';
                 }
+                feitos++; atualizaProg();
             }
         }
         const workers = [];
@@ -524,21 +595,72 @@
         await Promise.all(workers);
         resultados = registros;
 
-        adicionarLog('Processo concluído!');
-        if (resultados.length > 0) document.getElementById('btnBaixar').style.display = 'block';
+        progWrap.style.display = 'none';
+        adicionarLog(cancelado ? 'Processo cancelado. Resultados parciais mantidos.' : 'Processo concluído!');
+        if (resultados.length > 0) {
+            document.getElementById('btnBaixar').style.display = 'block';
+            document.getElementById('btnBaixarCsv').style.display = 'block';
+        }
+        salvarNoServidor();
+    }
+
+    function baixarArquivo(conteudo, nome, tipo) {
+        const blob = new Blob([conteudo], { type: tipo });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = nome;
+        link.click();
+        URL.revokeObjectURL(link.href);
+    }
+
+    function colunasResultado() {
+        const trazerNome = document.getElementById('optNome').checked;
+        const cab = ['numero', 'numero_formatado', 'cpf_cnpj', 'nome'];
+        if (trazerNome) cab.push('nome_whatsapp');
+        cab.push('status', 'data_consulta');
+        const linhas = resultados.map(r => {
+            const arr = [r.original, r.numero || '', r.cpf || '', r.nome || ''];
+            if (trazerNome) arr.push(r.nomeWpp || '');
+            arr.push(r.status || '', r.data || '');
+            return arr;
+        });
+        return { cab, linhas };
     }
 
     function baixarResultados() {
+        const { cab, linhas } = colunasResultado();
         const esc = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-        const linhas = resultados.map(r =>
-            [esc(r.original), (r.numero || ''), esc(r.cpf || ''), esc(r.nome || ''), esc(r.status)].join(','));
-        const csv = 'numero,numero_formatado,cpf_cnpj,nome,status\n' + linhas.join('\n');
-        const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = 'resultado_validacao.csv';
-        link.click();
-        URL.revokeObjectURL(link.href);
+        const csv = cab.join(',') + '\n' + linhas.map(r => r.map(esc).join(',')).join('\n');
+        baixarArquivo('﻿' + csv, 'resultado_validacao.csv', 'text/csv;charset=utf-8;');
+    }
+
+    // Excel colorido por status (via tabela HTML que o Excel abre como planilha).
+    function baixarExcel() {
+        const { cab, linhas } = colunasResultado();
+        const idxStatus = cab.indexOf('status');
+        const cor = st => st === 'possui whatsapp' ? '#d5f5e3' : st === 'nao possui' ? '#fadbd8' : st === 'formato errado' ? '#fcf3cf' : '#f2f3f4';
+        const escHtml = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        let html = '<html><head><meta charset="utf-8"></head><body><table border="1" style="border-collapse:collapse;font-family:Segoe UI,Arial;font-size:13px">';
+        html += '<tr style="background:#128c7e;color:#fff;font-weight:bold">' + cab.map(t => `<th>${escHtml(t)}</th>`).join('') + '</tr>';
+        linhas.forEach(r => {
+            html += `<tr style="background:${cor(r[idxStatus])}">` + r.map(c => `<td>${escHtml(c)}</td>`).join('') + '</tr>';
+        });
+        html += '</table></body></html>';
+        baixarArquivo('﻿' + html, 'resultado_validacao.xls', 'application/vnd.ms-excel');
+    }
+
+    // Salva o resultado numa pasta no servidor (resultados/).
+    async function salvarNoServidor() {
+        if (!resultados.length) return;
+        const { cab, linhas } = colunasResultado();
+        try {
+            const res = await fetch(`${API_BASE}/api/salvar-resultado`, {
+                method: 'POST', headers: headers(),
+                body: JSON.stringify({ cabecalho: cab, linhas })
+            });
+            const r = await res.json();
+            if (res.ok) adicionarLog(`💾 Salvo no servidor: ${r.arquivo}`);
+        } catch (e) { /* silencioso */ }
     }
 </script>
 </body>
