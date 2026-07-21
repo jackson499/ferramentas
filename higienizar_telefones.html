@@ -42,7 +42,7 @@ textarea{min-height:110px;resize:vertical;font-family:Consolas,monospace}
   <div class="card">
     <label>Importar Excel, CSV ou TXT</label>
     <input type="file" id="file" accept=".xlsx,.xls,.csv,.txt">
-    <p class="hint">Usa a primeira coluna / um número por linha.</p>
+    <p class="hint">Usa a primeira coluna / um número por linha. <a href="#" onclick="baixarModelo();return false;" style="color:var(--acc);font-weight:600">⬇ Baixar modelo de importação</a></p>
     <label style="margin-top:18px">Ou cole os números aqui</label>
     <textarea id="txt" placeholder="11985926457&#10;(11) 3456-7890&#10;5511987654321"></textarea>
     <button class="btn" onclick="processar()">Higienizar</button>
@@ -61,6 +61,12 @@ textarea{min-height:110px;resize:vertical;font-family:Consolas,monospace}
 </div>
 <script>
 let resultados=[];
+function baixarModelo(){
+  const dados=[['numero'],['5511985926457'],['5521998877665'],['5531991234567'],['11985926457']];
+  const ws=XLSX.utils.aoa_to_sheet(dados); ws['!cols']=[{wch:22}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'numeros');
+  XLSX.writeFile(wb,'modelo_higienizar_telefones.xlsx');
+}
 function normalizar(raw){
   let d=(raw||'').replace(/\D/g,'').replace(/^0+/,'');
   if(d.startsWith('55')&&(d.length===12||d.length===13)) return d;

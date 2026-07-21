@@ -44,7 +44,7 @@ input[type=file],select{width:100%;background:var(--panel2);border:1px solid var
       <div><label>Planilha A</label><input type="file" id="fa" accept=".xlsx,.xls,.csv,.txt"></div>
       <div><label>Planilha B</label><input type="file" id="fb" accept=".xlsx,.xls,.csv,.txt"></div>
     </div>
-    <p class="hint">Compara pela 1ª coluna (ou 1 valor por linha em TXT/CSV).</p>
+    <p class="hint">Compara pela 1ª coluna (ou 1 valor por linha em TXT/CSV). <a href="#" onclick="baixarModelo();return false;" style="color:var(--acc);font-weight:600">⬇ Baixar modelo de importação</a></p>
     <div class="opts">
       <label><input type="checkbox" id="case" checked> Ignorar maiúsc./minúsc.</label>
       <label><input type="checkbox" id="digits"> Comparar só dígitos (telefones/CPF)</label>
@@ -65,6 +65,12 @@ input[type=file],select{width:100%;background:var(--panel2);border:1px solid var
 </div>
 <script>
 let dados={soA:[],soB:[],ambas:[]}, atual='soA';
+function baixarModelo(){
+  const linhas=[['valor'],['5511985926457'],['5521998877665'],['5531991234567']];
+  const ws=XLSX.utils.aoa_to_sheet(linhas); ws['!cols']=[{wch:22}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'lista');
+  XLSX.writeFile(wb,'modelo_comparar_planilhas.xlsx');
+}
 async function ler(file){
   if(!file) return [];
   const ext=(file.name.split('.').pop()||'').toLowerCase();

@@ -43,7 +43,7 @@ textarea{min-height:130px;resize:vertical;font-family:Consolas,monospace}
   <div class="card">
     <label>Importar Excel, CSV ou TXT</label>
     <input type="file" id="file" accept=".xlsx,.xls,.csv,.txt">
-    <p class="hint">Ou cole os itens abaixo (um por linha).</p>
+    <p class="hint">Ou cole os itens abaixo (um por linha). <a href="#" onclick="baixarModelo();return false;" style="color:var(--acc);font-weight:600">⬇ Baixar modelo de importação</a></p>
     <label style="margin-top:14px">Lista</label>
     <textarea id="txt" placeholder="joão@email.com&#10;maria@email.com&#10;joão@email.com"></textarea>
     <div class="opts">
@@ -67,6 +67,12 @@ textarea{min-height:130px;resize:vertical;font-family:Consolas,monospace}
 </div>
 <script>
 let unicos=[];
+function baixarModelo(){
+  const dados=[['item'],['joao@email.com'],['maria@email.com'],['joao@email.com'],['pedro@email.com']];
+  const ws=XLSX.utils.aoa_to_sheet(dados); ws['!cols']=[{wch:26}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'itens');
+  XLSX.writeFile(wb,'modelo_remover_duplicados.xlsx');
+}
 function linhasDeTexto(t){ return t.split(/\r?\n/); }
 async function coletar(){
   const file=document.getElementById('file').files[0];
