@@ -160,6 +160,7 @@
     <div class="drop" style="margin-top:18px">
       <input type="file" id="fileInput" accept=".csv,.txt,.xlsx,.xls">
       <div class="hint">Excel, CSV ou TXT — um número por linha. Ele primeiro confere o formato (DDI+DDD+número) e depois checa o WhatsApp.</div>
+      <button type="button" class="btn btn-refresh" style="margin-top:12px" onclick="baixarModelo()">⬇ Baixar modelo de importação</button>
     </div>
 
     <button class="btn-primary" id="btnProcessar" onclick="iniciarValidacao()">Higienizar e Validar</button>
@@ -383,6 +384,22 @@
         return text.split(/\r?\n/)
             .map(l => l.split(/[;,\t]/)[0].trim())
             .filter(l => l.replace(/\D/g, '').length >= 3);
+    }
+
+    // Gera e baixa um Excel-modelo já no formato aceito (uma coluna "numero").
+    function baixarModelo() {
+        const dados = [
+            ['numero'],
+            ['5511985926457'],
+            ['5521998877665'],
+            ['5531991234567'],
+            ['11985926457']
+        ];
+        const ws = XLSX.utils.aoa_to_sheet(dados);
+        ws['!cols'] = [{ wch: 22 }];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'numeros');
+        XLSX.writeFile(wb, 'modelo_importacao_validador.xlsx');
     }
 
     async function iniciarValidacao() {
