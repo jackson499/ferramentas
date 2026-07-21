@@ -14,6 +14,15 @@ app.use(express.static(path.join(__dirname)));
 // ==========================================
 // CONFIGURAÇÃO
 // ==========================================
+// Senhas ficam no config.json (edite lá e reinicie — não precisa mexer no código).
+const CONFIG_FILE = path.join(__dirname, 'config.json');
+const cfgPadrao = { senhaAcesso: '', senhaHistorico: '1245', senhaApagar: '1590' };
+let config = {};
+try { config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')); } catch (_) { config = {}; }
+config = Object.assign({}, cfgPadrao, config);
+// Cria o config.json na primeira vez, já com as senhas padrão, para facilitar a edição.
+try { if (!fs.existsSync(CONFIG_FILE)) fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf8'); } catch (_) { /* ignora */ }
+
 const NUM_SESSOES = parseInt(process.env.NUM_SESSOES || '4', 10);
 // Ritmo "equilibrado": cada número (sessão) espera entre 3s e 6s
 // entre as próprias consultas. Com 4 sessões em paralelo, o total
@@ -22,7 +31,7 @@ const MIN_INTERVAL_MS = parseInt(process.env.MIN_INTERVAL_MS || '3000', 10);
 const MAX_INTERVAL_MS = parseInt(process.env.MAX_INTERVAL_MS || '6000', 10);
 
 // Proteção por senha (opcional). Sem SENHA_ACESSO, o painel abre direto.
-const SENHA_ACESSO = process.env.SENHA_ACESSO || '';
+const SENHA_ACESSO = process.env.SENHA_ACESSO || config.senhaAcesso || '';
 if (!SENHA_ACESSO) {
     console.warn('Painel sem senha (SENHA_ACESSO nao definida). Nao compartilhe o link.');
 }
@@ -85,7 +94,7 @@ function sanitizarCarteira(c) {
         .replace(/[^A-Za-z0-9\-_ ]/g, '').trim().replace(/\s+/g, '-').slice(0, 40) || 'sem-carteira';
 }
 // Senha para APAGAR resultados (diferente da senha de ver o histórico).
-const SENHA_APAGAR = process.env.SENHA_APAGAR || '1590';
+const SENHA_APAGAR = process.env.SENHA_APAGAR || config.senhaApagar || '1590';
 
 // ==========================================
 // SESSÕES
@@ -377,7 +386,7 @@ app.post('/api/salvar-resultado', (req, res) => {
 // ==========================================
 // HISTÓRICO (protegido por senha própria)
 // ==========================================
-const SENHA_HISTORICO = process.env.SENHA_HISTORICO || '1245';
+const SENHA_HISTORICO = process.env.SENHA_HISTORICO || config.senhaHistorico || '1245';
 function senhaHistOk(req, res) {
     const s = req.headers['x-senha-hist'] || (req.body && req.body.senha) || '';
     if (s === SENHA_HISTORICO) return true;
