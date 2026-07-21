@@ -76,6 +76,17 @@ async function buscarNome(client, whatsappId) {
 const RESULTADOS_DIR = path.join(__dirname, 'resultados');
 try { fs.mkdirSync(RESULTADOS_DIR, { recursive: true }); } catch (_) { /* ignora */ }
 
+// Índice com metadados (carteira, data, total) de cada resultado salvo.
+const INDEX_FILE = path.join(RESULTADOS_DIR, '_index.json');
+function lerIndex() { try { return JSON.parse(fs.readFileSync(INDEX_FILE, 'utf8')); } catch (_) { return []; } }
+function salvarIndex(idx) { try { fs.writeFileSync(INDEX_FILE, JSON.stringify(idx), 'utf8'); } catch (_) { /* ignora */ } }
+function sanitizarCarteira(c) {
+    return (c || '').toString().normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/[^A-Za-z0-9\-_ ]/g, '').trim().replace(/\s+/g, '-').slice(0, 40) || 'sem-carteira';
+}
+// Senha para APAGAR resultados (diferente da senha de ver o histórico).
+const SENHA_APAGAR = process.env.SENHA_APAGAR || '1590';
+
 // ==========================================
 // SESSÕES
 // ==========================================
@@ -338,18 +349,24 @@ app.post('/api/reiniciar', (req, res) => {
 
 // Salva o resultado da validação numa pasta no servidor (resultados/).
 app.post('/api/salvar-resultado', (req, res) => {
-    const { linhas, cabecalho } = req.body || {};
+    const { linhas, cabecalho, carteira } = req.body || {};
     if (!Array.isArray(linhas) || !linhas.length) return res.status(400).json({ erro: 'Sem dados para salvar.' });
+    const cartSan = sanitizarCarteira(carteira);
+    const cartNome = (carteira && carteira.toString().trim()) || 'Sem carteira';
     const agora = new Date();
     const pad = n => String(n).padStart(2, '0');
-    const nomeArq = `resultado_${agora.getFullYear()}-${pad(agora.getMonth() + 1)}-${pad(agora.getDate())}_${pad(agora.getHours())}${pad(agora.getMinutes())}${pad(agora.getSeconds())}.csv`;
+    const stamp = `${agora.getFullYear()}-${pad(agora.getMonth() + 1)}-${pad(agora.getDate())}_${pad(agora.getHours())}${pad(agora.getMinutes())}${pad(agora.getSeconds())}`;
+    const nomeArq = `resultado_${cartSan}_${stamp}.csv`;
     const caminho = path.join(RESULTADOS_DIR, nomeArq);
     const esc = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
     const todas = (Array.isArray(cabecalho) ? [cabecalho] : []).concat(linhas);
     const csv = '﻿' + todas.map(r => (Array.isArray(r) ? r : [r]).map(esc).join(',')).join('\r\n');
     try {
         fs.writeFileSync(caminho, csv, 'utf8');
-        console.log(`Resultado salvo no servidor: ${nomeArq} (${linhas.length} linhas)`);
+        const idx = lerIndex();
+        idx.push({ arquivo: nomeArq, carteira: cartNome, data: agora.toLocaleString('pt-BR'), total: linhas.length, ts: Date.now() });
+        salvarIndex(idx);
+        console.log(`Resultado salvo: ${nomeArq} (carteira: ${cartNome}, ${linhas.length} linhas)`);
         res.json({ ok: true, arquivo: 'resultados/' + nomeArq, total: linhas.length });
     } catch (e) {
         console.error('Erro ao salvar resultado:', e.message);
@@ -371,17 +388,21 @@ function senhaHistOk(req, res) {
 // Lista os resultados salvos no servidor.
 app.post('/api/historico', (req, res) => {
     if (!senhaHistOk(req, res)) return;
+    const idx = lerIndex();
+    const meta = {}; idx.forEach(e => { meta[e.arquivo] = e; });
     let arquivos = [];
     try {
         arquivos = fs.readdirSync(RESULTADOS_DIR)
             .filter(f => f.toLowerCase().endsWith('.csv'))
             .map(f => {
                 const st = fs.statSync(path.join(RESULTADOS_DIR, f));
-                return { nome: f, tamanho: st.size, data: st.mtime.toLocaleString('pt-BR'), ts: st.mtimeMs };
+                const m = meta[f] || {};
+                return { nome: f, carteira: m.carteira || 'Sem carteira', total: m.total || null, tamanho: st.size, data: m.data || st.mtime.toLocaleString('pt-BR'), ts: st.mtimeMs };
             })
             .sort((a, b) => b.ts - a.ts);
     } catch (_) { /* pasta pode nao existir ainda */ }
-    res.json({ ok: true, arquivos });
+    const carteiras = [...new Set(arquivos.map(a => a.carteira))].sort();
+    res.json({ ok: true, arquivos, carteiras });
 });
 
 // Retorna o conteúdo de um resultado salvo (para o navegador baixar).
@@ -395,6 +416,24 @@ app.post('/api/historico/arquivo', (req, res) => {
         res.json({ ok: true, nome, conteudo: fs.readFileSync(caminho, 'utf8') });
     } catch (e) {
         res.status(500).json({ erro: 'Erro ao ler o arquivo.' });
+    }
+});
+
+// Apaga um resultado salvo (protegido pela senha de apagar).
+app.post('/api/historico/apagar', (req, res) => {
+    const s = req.headers['x-senha-del'] || (req.body && req.body.senha) || '';
+    if (s !== SENHA_APAGAR) return res.status(401).json({ erro: 'Senha para apagar incorreta.' });
+    const nome = path.basename((req.body && req.body.arquivo) || '');
+    if (!nome || !nome.toLowerCase().endsWith('.csv')) return res.status(400).json({ erro: 'Arquivo inválido.' });
+    const caminho = path.join(RESULTADOS_DIR, nome);
+    if (!caminho.startsWith(RESULTADOS_DIR)) return res.status(400).json({ erro: 'Caminho inválido.' });
+    try {
+        if (fs.existsSync(caminho)) fs.unlinkSync(caminho);
+        salvarIndex(lerIndex().filter(e => e.arquivo !== nome));
+        console.log(`Resultado apagado: ${nome}`);
+        res.json({ ok: true });
+    } catch (e) {
+        res.status(500).json({ erro: 'Erro ao apagar.' });
     }
 });
 

@@ -163,6 +163,11 @@
       <button type="button" class="btn btn-refresh" style="margin-top:12px" onclick="baixarModelo()">⬇ Baixar modelo de importação</button>
     </div>
 
+    <label style="display:block;font-weight:600;font-size:.85rem;margin-top:16px">Carteira <span style="color:var(--red)">*</span></label>
+    <input type="text" id="carteira" placeholder="Ex.: Bradesco Comercial" style="width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;font-size:1rem" list="carteiras-recentes">
+    <datalist id="carteiras-recentes"></datalist>
+    <div class="hint" style="color:var(--mut);font-size:.8rem;margin-top:6px">A carteira fica salva junto do resultado — dá pra filtrar por ela no histórico.</div>
+
     <label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:.86rem;cursor:pointer">
       <input type="checkbox" id="optNome" style="width:16px;height:16px"> Trazer nome do WhatsApp <span style="color:var(--mut)">(mais lento; nem todo número mostra, por privacidade)</span>
     </label>
@@ -231,6 +236,7 @@
     let monitorando = false;
     let ultimoConectados = 0;
     let pausado = false, cancelado = false;
+    let carteiraAtual = '';
 
     function headers() { return { 'Content-Type': 'application/json', 'x-senha': SENHA }; }
 
@@ -398,6 +404,7 @@
 
     // ===== HISTÓRICO (senha própria) =====
     let senhaHist = '';
+    let histArquivos = [], histCarteiras = [];
     function abrirHistorico() {
         const a = document.getElementById('hist-area');
         a.style.display = 'block';
@@ -418,19 +425,47 @@
             senhaHist = s;
             document.getElementById('hist-erro').style.display = 'none';
             document.getElementById('hist-login').style.display = 'none';
-            renderHistorico(r.arquivos || []);
+            renderHistorico(r.arquivos || [], r.carteiras || []);
         } catch (e) { alert('Erro ao carregar o histórico. O servidor está rodando?'); }
     }
 
-    function renderHistorico(arquivos) {
+    function renderHistorico(arquivos, carteiras) {
+        histArquivos = arquivos || [];
+        histCarteiras = carteiras || [];
+        // preenche sugestões de carteira no campo de importação
+        const dl = document.getElementById('carteiras-recentes');
+        if (dl) dl.innerHTML = histCarteiras.map(c => `<option value="${String(c).replace(/"/g, '&quot;')}">`).join('');
         const box = document.getElementById('hist-lista'); box.style.display = 'block';
-        if (!arquivos.length) { box.innerHTML = '<p style="color:var(--mut)">Nenhum resultado salvo ainda.</p>'; return; }
-        box.innerHTML = '<div style="max-height:340px;overflow:auto">' + arquivos.map(a =>
+        box.innerHTML =
+            `<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+               <label style="font-size:.85rem;color:var(--mut)">Carteira:</label>
+               <select id="histFiltro" onchange="aplicarFiltroHist()" style="padding:9px 12px;border:1px solid var(--line);border-radius:10px;font-size:.9rem">
+                 <option value="">Todas</option>
+                 ${histCarteiras.map(c => `<option value="${String(c).replace(/"/g, '&quot;')}">${c}</option>`).join('')}
+               </select>
+               <span style="flex:1"></span>
+               <button class="btn btn-refresh" style="margin-top:0" onclick="recarregarHistorico()">🔄 Atualizar</button>
+             </div><div id="hist-itens"></div>`;
+        aplicarFiltroHist();
+    }
+
+    function aplicarFiltroHist() {
+        const sel = document.getElementById('histFiltro');
+        const f = sel ? sel.value : '';
+        const lista = f ? histArquivos.filter(a => a.carteira === f) : histArquivos;
+        const cont = document.getElementById('hist-itens');
+        if (!lista.length) { cont.innerHTML = '<p style="color:var(--mut)">Nenhum resultado.</p>'; return; }
+        cont.innerHTML = '<div style="max-height:340px;overflow:auto">' + lista.map(a =>
             `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:var(--soft)">
-               <div><div style="font-weight:600;font-size:.9rem">${a.nome}</div><div style="color:var(--mut);font-size:.78rem">${a.data} · ${(a.tamanho / 1024).toFixed(1)} KB</div></div>
-               <button class="btn btn-refresh" style="margin-top:0" onclick="baixarDoHistorico('${a.nome}')">⬇ Baixar</button>
-             </div>`).join('') + '</div>' +
-            '<button class="btn btn-refresh" style="margin-top:6px" onclick="recarregarHistorico()">🔄 Atualizar lista</button>';
+               <div>
+                 <div style="font-weight:700;font-size:.9rem;color:var(--wa-deep)">${a.carteira}</div>
+                 <div style="color:var(--mut);font-size:.78rem">${a.data} · ${(a.tamanho / 1024).toFixed(1)} KB${a.total ? ` · ${a.total} números` : ''}</div>
+               </div>
+               <div style="display:flex;gap:8px">
+                 <button class="btn btn-refresh" style="margin-top:0" onclick="baixarDoHistorico('${a.nome}')">⬇ Baixar</button>
+                 <button class="btn btn-disconnect" style="margin-top:0" onclick="apagarDoHistorico('${a.nome}')" title="Apagar (pede senha)">🗑</button>
+               </div>
+             </div>`).join('') + '</div>';
     }
 
     async function recarregarHistorico() {
@@ -439,8 +474,22 @@
                 method: 'POST', headers: headersHist(senhaHist), body: JSON.stringify({ senha: senhaHist })
             });
             const r = await res.json();
-            renderHistorico(r.arquivos || []);
+            renderHistorico(r.arquivos || [], r.carteiras || []);
         } catch (e) { /* ignora */ }
+    }
+
+    async function apagarDoHistorico(nome) {
+        const s = prompt('Senha para APAGAR este resultado:');
+        if (s === null) return;
+        try {
+            const res = await fetch(`${API_BASE}/api/historico/apagar`, {
+                method: 'POST', headers: Object.assign(headers(), { 'x-senha-del': s }),
+                body: JSON.stringify({ arquivo: nome, senha: s })
+            });
+            const r = await res.json();
+            if (!res.ok) { alert(r.erro || 'Erro ao apagar.'); return; }
+            recarregarHistorico();
+        } catch (e) { alert('Erro ao apagar do servidor.'); }
     }
 
     async function baixarDoHistorico(nome) {
@@ -540,6 +589,8 @@
         const fileInput = document.getElementById('fileInput');
         const btn = document.getElementById('btnProcessar');
         if (fileInput.files.length === 0) { alert('Selecione um arquivo Excel, CSV ou TXT.'); return; }
+        carteiraAtual = document.getElementById('carteira').value.trim();
+        if (!carteiraAtual) { alert('Informe a carteira que está subindo.'); document.getElementById('carteira').focus(); return; }
 
         btn.disabled = true;
         btn.innerText = 'Processando...';
@@ -726,7 +777,7 @@
         try {
             const res = await fetch(`${API_BASE}/api/salvar-resultado`, {
                 method: 'POST', headers: headers(),
-                body: JSON.stringify({ cabecalho: cab, linhas })
+                body: JSON.stringify({ cabecalho: cab, linhas, carteira: carteiraAtual })
             });
             const r = await res.json();
             if (res.ok) adicionarLog(`💾 Salvo no servidor: ${r.arquivo}`);
