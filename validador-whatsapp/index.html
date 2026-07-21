@@ -198,6 +198,17 @@
 
     function headers() { return { 'Content-Type': 'application/json', 'x-senha': SENHA }; }
 
+    // Formata 5511985926457 -> +55 (11) 98592-6457
+    function formatarNumero(n) {
+        n = (n || '').replace(/\D/g, '');
+        if (n.startsWith('55') && n.length >= 12) {
+            const ddd = n.slice(2, 4), resto = n.slice(4);
+            const meio = resto.length > 8 ? resto.slice(0, 5) + '-' + resto.slice(5) : resto.slice(0, 4) + '-' + resto.slice(4);
+            return `+55 (${ddd}) ${meio}`;
+        }
+        return n ? '+' + n : '';
+    }
+
     function iniciarMonitoramento() {
         document.getElementById('senha-area').style.display = 'none';
         document.getElementById('login-area').style.display = 'block';
@@ -247,7 +258,9 @@
                 cell.classList.add('ok');
                 img.style.display = 'none';
                 ld.style.display = 'none';
-                st.textContent = '✅ Conectado';
+                st.innerHTML = s.numero
+                    ? '✅ Conectado<br><span style="font-weight:400;color:var(--wa-dark);font-size:.78rem">' + formatarNumero(s.numero) + '</span>'
+                    : '✅ Conectado';
                 dc.style.display = 'inline-flex';
                 dc.onclick = () => desconectar(s.id, i + 1);
                 at.style.display = 'none';
@@ -292,8 +305,8 @@
             } else {
                 document.getElementById('app-area').style.display = 'none';
             }
-            document.getElementById('login-area').style.display =
-                (ultimoConectados < sessions.length) ? 'block' : 'none';
+            // Sempre visível: mostra os números conectados (com Desconectar) e os QRs dos que faltam.
+            document.getElementById('login-area').style.display = 'block';
         } catch (error) {
             document.getElementById('login-area').style.display = 'block';
             const grid = document.getElementById('qr-grid');

@@ -81,7 +81,9 @@ function montarClient(s) {
         s.ready = true;
         s.qr = '';
         s.busyUntil = 0;
-        console.log(`[${id}] Conectado e pronto!`);
+        try { s.numero = (client.info && client.info.wid && client.info.wid.user) ? client.info.wid.user : ''; }
+        catch (_) { s.numero = ''; }
+        console.log(`[${id}] Conectado e pronto!` + (s.numero ? ` (${s.numero})` : ''));
     });
 
     client.on('auth_failure', (msg) => {
@@ -93,6 +95,7 @@ function montarClient(s) {
     client.on('disconnected', async (reason) => {
         s.ready = false;
         s.qr = '';
+        s.numero = '';
         console.warn(`[${id}] Desconectado:`, reason);
         // Se foi desconexão manual, o handler de /api/desconectar cuida da recriação.
         if (s.desconectandoManual || s.reconectando) return;
@@ -120,6 +123,7 @@ function criarSessao(indice) {
         indice,
         ready: false,
         qr: '',
+        numero: '',
         inUse: false,
         busyUntil: 0,
         reconectando: false,
@@ -180,6 +184,7 @@ app.get('/api/status', (req, res) => {
     const sessions = sessoes.map(s => ({
         id: s.id,
         conectado: s.ready,
+        numero: s.ready ? (s.numero || '') : '',
         qrImage: s.ready ? '' : s.qr
     }));
     const conectados = sessoes.filter(s => s.ready).length;
@@ -228,6 +233,7 @@ app.post('/api/desconectar', async (req, res) => {
     s.desconectandoManual = true;
     s.ready = false;
     s.qr = '';
+    s.numero = '';
     try {
         try { await s.client.logout(); } catch (e) { console.warn(`[${s.id}] logout:`, e.message); }
         try { await s.client.destroy(); } catch (e) { /* ignora */ }
