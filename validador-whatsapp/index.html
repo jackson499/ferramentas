@@ -154,7 +154,7 @@
 
   <!-- Validação (Importador) -->
   <div class="card" id="app-area" style="display:none">
-    <div class="section-head"><h2>Validar lista</h2><span style="flex:1"></span><button class="btn btn-refresh" style="margin-top:0" onclick="reiniciarServidor()" title="Reinicia o servidor do validador">♻ Reiniciar servidor</button></div>
+    <div class="section-head"><h2>Validar lista</h2><span style="flex:1"></span><button class="btn btn-refresh" style="margin-top:0" onclick="abrirHistorico()">📁 Histórico</button><button class="btn btn-refresh" style="margin-top:0" onclick="reiniciarServidor()" title="Reinicia o servidor do validador">♻ Reiniciar servidor</button></div>
     <span class="conn-pill" id="conectados-info"><span class="dot"></span> Conectado</span>
 
     <div class="drop" style="margin-top:18px">
@@ -195,6 +195,18 @@
     </div>
 
     <div id="log"></div>
+  </div>
+
+  <!-- Histórico (protegido por senha) -->
+  <div class="card" id="hist-area" style="display:none">
+    <div class="section-head"><h2>Histórico de validações</h2><span style="flex:1"></span><button class="btn btn-disconnect" style="margin-top:0" onclick="fecharHistorico()">✖ Fechar</button></div>
+    <div id="hist-login">
+      <p class="section-sub">Digite a senha para ver os resultados salvos no servidor.</p>
+      <input type="password" id="histSenha" placeholder="Senha do histórico" style="max-width:260px;width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;font-size:1rem" onkeydown="if(event.key==='Enter')entrarHistorico()">
+      <button class="btn-primary" style="max-width:260px" onclick="entrarHistorico()">Entrar</button>
+      <p id="hist-erro" style="color:var(--red);display:none;margin-top:8px;font-size:.85rem">Senha incorreta.</p>
+    </div>
+    <div id="hist-lista" style="display:none;margin-top:14px"></div>
   </div>
 
   <!-- Conexão / QR -->
@@ -382,6 +394,64 @@
         try { await fetch(`${API_BASE}/api/reiniciar`, { method: 'POST', headers: headers() }); } catch (e) { /* o servidor cai durante o reinicio, entao o erro e esperado */ }
         alert('Reiniciando o servidor... Aguarde ~15 segundos. A página vai recarregar sozinha.');
         setTimeout(() => location.reload(), 15000);
+    }
+
+    // ===== HISTÓRICO (senha própria) =====
+    let senhaHist = '';
+    function abrirHistorico() {
+        const a = document.getElementById('hist-area');
+        a.style.display = 'block';
+        a.scrollIntoView({ behavior: 'smooth' });
+    }
+    function fecharHistorico() { document.getElementById('hist-area').style.display = 'none'; }
+
+    function headersHist(s) { return Object.assign(headers(), { 'x-senha-hist': s }); }
+
+    async function entrarHistorico() {
+        const s = document.getElementById('histSenha').value;
+        try {
+            const res = await fetch(`${API_BASE}/api/historico`, {
+                method: 'POST', headers: headersHist(s), body: JSON.stringify({ senha: s })
+            });
+            if (res.status === 401) { document.getElementById('hist-erro').style.display = 'block'; return; }
+            const r = await res.json();
+            senhaHist = s;
+            document.getElementById('hist-erro').style.display = 'none';
+            document.getElementById('hist-login').style.display = 'none';
+            renderHistorico(r.arquivos || []);
+        } catch (e) { alert('Erro ao carregar o histórico. O servidor está rodando?'); }
+    }
+
+    function renderHistorico(arquivos) {
+        const box = document.getElementById('hist-lista'); box.style.display = 'block';
+        if (!arquivos.length) { box.innerHTML = '<p style="color:var(--mut)">Nenhum resultado salvo ainda.</p>'; return; }
+        box.innerHTML = '<div style="max-height:340px;overflow:auto">' + arquivos.map(a =>
+            `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:var(--soft)">
+               <div><div style="font-weight:600;font-size:.9rem">${a.nome}</div><div style="color:var(--mut);font-size:.78rem">${a.data} · ${(a.tamanho / 1024).toFixed(1)} KB</div></div>
+               <button class="btn btn-refresh" style="margin-top:0" onclick="baixarDoHistorico('${a.nome}')">⬇ Baixar</button>
+             </div>`).join('') + '</div>' +
+            '<button class="btn btn-refresh" style="margin-top:6px" onclick="recarregarHistorico()">🔄 Atualizar lista</button>';
+    }
+
+    async function recarregarHistorico() {
+        try {
+            const res = await fetch(`${API_BASE}/api/historico`, {
+                method: 'POST', headers: headersHist(senhaHist), body: JSON.stringify({ senha: senhaHist })
+            });
+            const r = await res.json();
+            renderHistorico(r.arquivos || []);
+        } catch (e) { /* ignora */ }
+    }
+
+    async function baixarDoHistorico(nome) {
+        try {
+            const res = await fetch(`${API_BASE}/api/historico/arquivo`, {
+                method: 'POST', headers: headersHist(senhaHist), body: JSON.stringify({ arquivo: nome, senha: senhaHist })
+            });
+            const r = await res.json();
+            if (!res.ok) { alert(r.erro || 'Erro ao baixar.'); return; }
+            baixarArquivo(r.conteudo, nome, 'text/csv;charset=utf-8;');
+        } catch (e) { alert('Erro ao baixar do servidor.'); }
     }
 
     function adicionarLog(texto, ehErro = false) {

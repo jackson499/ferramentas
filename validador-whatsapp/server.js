@@ -358,6 +358,47 @@ app.post('/api/salvar-resultado', (req, res) => {
 });
 
 // ==========================================
+// HISTÓRICO (protegido por senha própria)
+// ==========================================
+const SENHA_HISTORICO = process.env.SENHA_HISTORICO || '1245';
+function senhaHistOk(req, res) {
+    const s = req.headers['x-senha-hist'] || (req.body && req.body.senha) || '';
+    if (s === SENHA_HISTORICO) return true;
+    res.status(401).json({ erro: 'Senha do histórico incorreta.' });
+    return false;
+}
+
+// Lista os resultados salvos no servidor.
+app.post('/api/historico', (req, res) => {
+    if (!senhaHistOk(req, res)) return;
+    let arquivos = [];
+    try {
+        arquivos = fs.readdirSync(RESULTADOS_DIR)
+            .filter(f => f.toLowerCase().endsWith('.csv'))
+            .map(f => {
+                const st = fs.statSync(path.join(RESULTADOS_DIR, f));
+                return { nome: f, tamanho: st.size, data: st.mtime.toLocaleString('pt-BR'), ts: st.mtimeMs };
+            })
+            .sort((a, b) => b.ts - a.ts);
+    } catch (_) { /* pasta pode nao existir ainda */ }
+    res.json({ ok: true, arquivos });
+});
+
+// Retorna o conteúdo de um resultado salvo (para o navegador baixar).
+app.post('/api/historico/arquivo', (req, res) => {
+    if (!senhaHistOk(req, res)) return;
+    const nome = path.basename((req.body && req.body.arquivo) || '');
+    if (!nome || !nome.toLowerCase().endsWith('.csv')) return res.status(400).json({ erro: 'Arquivo inválido.' });
+    const caminho = path.join(RESULTADOS_DIR, nome);
+    if (!caminho.startsWith(RESULTADOS_DIR) || !fs.existsSync(caminho)) return res.status(404).json({ erro: 'Arquivo não encontrado.' });
+    try {
+        res.json({ ok: true, nome, conteudo: fs.readFileSync(caminho, 'utf8') });
+    } catch (e) {
+        res.status(500).json({ erro: 'Erro ao ler o arquivo.' });
+    }
+});
+
+// ==========================================
 // WATCHDOG — recupera sozinho sessão travada (sem QR e sem conectar).
 // ==========================================
 const STUCK_MS = 70000;
