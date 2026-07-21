@@ -159,7 +159,7 @@
 
     <div class="drop" style="margin-top:18px">
       <input type="file" id="fileInput" accept=".csv,.txt,.xlsx,.xls">
-      <div class="hint">Excel, CSV ou TXT — um número por linha. Ele primeiro confere o formato (DDI+DDD+número) e depois checa o WhatsApp.</div>
+      <div class="hint">Excel, CSV ou TXT. Coluna <b>numero</b> obrigatória; <b>cpf_cnpj</b> e <b>nome</b> são opcionais e voltam na planilha de resultado. Ele confere o formato (DDI+DDD+número) e depois checa o WhatsApp.</div>
       <button type="button" class="btn btn-refresh" style="margin-top:12px" onclick="baixarModelo()">⬇ Baixar modelo de importação</button>
     </div>
 
@@ -380,23 +380,64 @@
         return null;
     }
 
-    function extrairLinhas(text) {
-        return text.split(/\r?\n/)
-            .map(l => l.split(/[;,\t]/)[0].trim())
-            .filter(l => l.replace(/\D/g, '').length >= 3);
+    // Detecta em qual coluna estão numero / cpf-cnpj / nome pelo cabeçalho.
+    function acharColunas(header) {
+        const norm = s => (s == null ? '' : String(s)).toLowerCase().replace(/[^a-z]/g, '');
+        const idx = { numero: -1, cpf: -1, nome: -1 };
+        header.forEach((h, i) => {
+            const n = norm(h);
+            if (idx.numero < 0 && /(numero|telefone|celular|whatsapp|fone|tel|contato)/.test(n)) idx.numero = i;
+            else if (idx.cpf < 0 && /(cpf|cnpj|documento|doc)/.test(n)) idx.cpf = i;
+            else if (idx.nome < 0 && /(nome|cliente|razao)/.test(n)) idx.nome = i;
+        });
+        return idx;
     }
 
-    // Gera e baixa um Excel-modelo já no formato aceito (uma coluna "numero").
+    // Quebra um texto CSV/TXT em linhas de células (detecta ; , ou TAB).
+    function csvParaRows(text) {
+        const linhas = text.split(/\r?\n/).filter(l => l.trim() !== '');
+        if (!linhas.length) return [];
+        const delim = linhas[0].includes(';') ? ';' : (linhas[0].includes('\t') ? '\t' : ',');
+        return linhas.map(l => l.split(delim).map(c => c.trim().replace(/^"|"$/g, '')));
+    }
+
+    // Converte linhas (array de arrays) em registros {original, cpf, nome}.
+    // Aceita cabeçalho com numero/cpf_cnpj/nome em qualquer ordem; sem cabeçalho,
+    // assume a ordem: numero, cpf_cnpj, nome. cpf e nome são OPCIONAIS.
+    function linhasParaRegistros(rows) {
+        if (!rows.length) return [];
+        const header = rows[0].map(c => (c == null ? '' : String(c)));
+        const idx = acharColunas(header);
+        const temCabecalho = idx.numero >= 0 || idx.cpf >= 0 || idx.nome >= 0;
+        const dataRows = temCabecalho ? rows.slice(1) : rows;
+        const map = temCabecalho
+            ? { numero: idx.numero >= 0 ? idx.numero : 0, cpf: idx.cpf, nome: idx.nome }
+            : { numero: 0, cpf: 1, nome: 2 };
+        const registros = [];
+        dataRows.forEach(r => {
+            const num = (r[map.numero] != null ? String(r[map.numero]) : '').trim();
+            if (num.replace(/\D/g, '').length < 3) return;
+            registros.push({
+                original: num,
+                cpf: (map.cpf >= 0 && r[map.cpf] != null) ? String(r[map.cpf]).trim() : '',
+                nome: (map.nome >= 0 && r[map.nome] != null) ? String(r[map.nome]).trim() : ''
+            });
+        });
+        return registros;
+    }
+
+    // Gera e baixa um Excel-modelo com as colunas: numero (obrigatório),
+    // cpf_cnpj e nome (opcionais).
     function baixarModelo() {
         const dados = [
-            ['numero'],
-            ['5511985926457'],
-            ['5521998877665'],
-            ['5531991234567'],
-            ['11985926457']
+            ['numero', 'cpf_cnpj', 'nome'],
+            ['5511985926457', '123.456.789-09', 'João da Silva'],
+            ['5521998877665', '12.345.678/0001-90', 'Empresa Exemplo LTDA'],
+            ['5531991234567', '', 'Maria (cpf é opcional)'],
+            ['11985926457', '', '']
         ];
         const ws = XLSX.utils.aoa_to_sheet(dados);
-        ws['!cols'] = [{ wch: 22 }];
+        ws['!cols'] = [{ wch: 18 }, { wch: 20 }, { wch: 26 }];
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'numeros');
         XLSX.writeFile(wb, 'modelo_importacao_validador.xlsx');
@@ -416,17 +457,17 @@
         const file = fileInput.files[0];
         const ext = (file.name.split('.').pop() || '').toLowerCase();
         try {
-            let linhas;
+            let rows;
             if (ext === 'xlsx' || ext === 'xls') {
                 const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
-                let arr = [];
-                wb.SheetNames.forEach(sn => XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1 })
-                    .forEach(row => { if (row[0] != null) arr.push(String(row[0])); }));
-                linhas = arr.map(l => l.trim()).filter(l => l.replace(/\D/g, '').length >= 3);
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                rows = XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: false, defval: '' });
             } else {
-                linhas = extrairLinhas(await file.text());
+                rows = csvParaRows(await file.text());
             }
-            await processarLinhas(linhas);
+            const registros = linhasParaRegistros(rows);
+            if (!registros.length) { adicionarLog('Nenhum número encontrado no arquivo.', true); return; }
+            await processarRegistros(registros);
         } catch (e) {
             adicionarLog('Erro ao ler o arquivo: ' + e.message, true);
         } finally {
@@ -435,22 +476,21 @@
         }
     }
 
-    async function processarLinhas(linhas) {
-        document.getElementById('count-total').innerText = linhas.length;
+    async function processarRegistros(registros) {
+        document.getElementById('count-total').innerText = registros.length;
         let validCount = 0, invalidCount = 0, fmtCount = 0;
         document.getElementById('count-valid').innerText = 0;
         document.getElementById('count-invalid').innerText = 0;
         document.getElementById('count-fmt').innerText = 0;
 
         // 1) HIGIENIZAÇÃO — confere o formato antes de chamar a API
-        const itens = linhas.map(orig => ({ original: orig, numero: normalizarNumero(orig) }));
-        itens.forEach(it => { if (!it.numero) { it.status = 'formato errado'; fmtCount++; } });
+        registros.forEach(it => { it.numero = normalizarNumero(it.original); if (!it.numero) { it.status = 'formato errado'; fmtCount++; } });
         document.getElementById('count-fmt').innerText = fmtCount;
 
         // 2) VERIFICAÇÃO — só os de formato válido vão para a API
-        const paraChecar = itens.filter(it => it.numero);
+        const paraChecar = registros.filter(it => it.numero);
         const concurrency = Math.max(1, ultimoConectados);
-        adicionarLog(`${linhas.length} linhas — ${fmtCount} com formato errado. Verificando WhatsApp de ${paraChecar.length} número(s) com ${concurrency} sessão(ões)...`);
+        adicionarLog(`${registros.length} linha(s) — ${fmtCount} com formato errado. Verificando WhatsApp de ${paraChecar.length} número(s) com ${concurrency} sessão(ões)...`);
 
         let idx = 0;
         async function worker() {
@@ -482,15 +522,17 @@
         const workers = [];
         for (let i = 0; i < concurrency; i++) workers.push(worker());
         await Promise.all(workers);
-        resultados = itens;
+        resultados = registros;
 
         adicionarLog('Processo concluído!');
         if (resultados.length > 0) document.getElementById('btnBaixar').style.display = 'block';
     }
 
     function baixarResultados() {
-        const csv = 'numero,formatado,status\n' + resultados.map(r =>
-            `"${(r.original || '').replace(/"/g, '""')}",${r.numero || ''},"${r.status}"`).join('\n');
+        const esc = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+        const linhas = resultados.map(r =>
+            [esc(r.original), (r.numero || ''), esc(r.cpf || ''), esc(r.nome || ''), esc(r.status)].join(','));
+        const csv = 'numero,numero_formatado,cpf_cnpj,nome,status\n' + linhas.join('\n');
         const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
