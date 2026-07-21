@@ -154,7 +154,7 @@
 
   <!-- Validação (Importador) -->
   <div class="card" id="app-area" style="display:none">
-    <div class="section-head"><h2>Validar lista</h2></div>
+    <div class="section-head"><h2>Validar lista</h2><span style="flex:1"></span><button class="btn btn-refresh" style="margin-top:0" onclick="reiniciarServidor()" title="Reinicia o servidor do validador">♻ Reiniciar servidor</button></div>
     <span class="conn-pill" id="conectados-info"><span class="dot"></span> Conectado</span>
 
     <div class="drop" style="margin-top:18px">
@@ -177,8 +177,8 @@
 
   <!-- Conexão / QR -->
   <div class="card" id="login-area" style="display:none">
-    <div class="section-head"><h2>Conectar números</h2></div>
-    <p class="section-sub">Escaneie cada QR Code com um número de WhatsApp diferente. A validação já começa assim que o primeiro conectar. Se um código expirar, use <b>Atualizar QR</b>.</p>
+    <div class="section-head"><h2>Conectar números</h2><span style="flex:1"></span><button class="btn btn-refresh" style="margin-top:0" onclick="reiniciarServidor()" title="Reinicia o servidor e recarrega os QR Codes travados">♻ Reiniciar servidor</button></div>
+    <p class="section-sub">Escaneie cada QR Code com um número de WhatsApp diferente. A validação já começa assim que o primeiro conectar. Se um código expirar, use <b>Atualizar QR</b>. Se um QR ficar travado carregando, use <b>Reiniciar servidor</b>.</p>
     <div class="qr-grid" id="qr-grid"></div>
   </div>
 
@@ -338,6 +338,13 @@
         } finally {
             setTimeout(() => { if (btn) { btn.disabled = false; btn.textContent = '🔄 Atualizar QR'; } }, 4000);
         }
+    }
+
+    async function reiniciarServidor() {
+        if (!confirm('Reiniciar o servidor do validador?\n\nOs QR Codes vão recarregar e a página se atualiza sozinha em ~15 segundos.')) return;
+        try { await fetch(`${API_BASE}/api/reiniciar`, { method: 'POST', headers: headers() }); } catch (e) { /* o servidor cai durante o reinicio, entao o erro e esperado */ }
+        alert('Reiniciando o servidor... Aguarde ~15 segundos. A página vai recarregar sozinha.');
+        setTimeout(() => location.reload(), 15000);
     }
 
     function adicionarLog(texto, ehErro = false) {

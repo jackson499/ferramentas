@@ -3,6 +3,8 @@ const cors = require('cors');
 const path = require('path');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
+const fs = require('fs');
+const { exec, spawn } = require('child_process');
 
 const app = express();
 app.use(express.json());
@@ -31,6 +33,21 @@ app.use('/api', (req, res, next) => {
 
 const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+// Mata a janela do Chrome/WhatsApp Web presa de UMA sessao (nao mexe no Chrome de navegacao).
+function matarChromeDaSessao(id) {
+    const filtro = 'session-' + id; // ex.: user-data-dir .../.wwebjs_auth/session-sessao-1
+    const cmd = `Get-CimInstance Win32_Process -Filter \\"Name='chrome.exe'\\" | Where-Object { $_.CommandLine -like '*${filtro}*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`;
+    try { exec('powershell -NoProfile -Command "' + cmd + '"', () => {}); } catch (_) { /* ignora */ }
+}
+
+// Remove travas de sessao que impedem o Chrome de reabrir aquele numero.
+function limparLock(id) {
+    const dir = path.join(__dirname, '.wwebjs_auth', 'session-' + id);
+    ['SingletonLock', 'SingletonCookie', 'SingletonSocket'].forEach(f => {
+        try { fs.unlinkSync(path.join(dir, f)); } catch (_) { /* ignora */ }
+    });
+}
 
 // ==========================================
 // SESSÕES
@@ -237,13 +254,31 @@ app.post('/api/atualizar-qr', async (req, res) => {
 
     s.reconectando = true;   // evita que o handler 'disconnected' recrie em paralelo
     s.qr = '';
-    try { await s.client.destroy(); } catch (e) { /* ignora */ }
+    // destroy pode travar se o Chrome congelou; nao esperamos alem de 4s.
+    try { await Promise.race([s.client.destroy(), sleep(4000)]); } catch (e) { /* ignora */ }
+    // Mata a janela travada do Chrome dessa sessao e limpa as travas.
+    matarChromeDaSessao(s.id);
+    limparLock(s.id);
     setTimeout(() => {
         s.reconectando = false;
-        console.log(`[${s.id}] Gerando novo QR a pedido...`);
+        console.log(`[${s.id}] Gerando novo QR a pedido (com limpeza)...`);
         recriarClient(s);
-    }, 800);
+    }, 1200);
     res.json({ ok: true });
+});
+
+// Reinicia o servidor inteiro: dispara o REINICIAR.bat (mata processos travados,
+// limpa travas e sobe de novo). Usado pelo botao "Reiniciar servidor" no painel.
+app.post('/api/reiniciar', (req, res) => {
+    res.json({ ok: true });
+    const bat = path.join(__dirname, 'REINICIAR.bat');
+    try {
+        const child = spawn('cmd.exe', ['/c', bat], { detached: true, stdio: 'ignore', windowsHide: true });
+        child.unref();
+        console.log('Reinicio solicitado pelo painel.');
+    } catch (e) {
+        console.error('Erro ao reiniciar:', e.message);
+    }
 });
 
 const PORT = process.env.PORT || 3000;
