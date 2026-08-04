@@ -436,34 +436,70 @@
     function renderHistorico(arquivos, carteiras) {
         histArquivos = arquivos || [];
         histCarteiras = carteiras || [];
-        // preenche sugestões de carteira no campo de importação
-        const dl = document.getElementById('carteiras-recentes');
-        if (dl) dl.innerHTML = histCarteiras.map(c => `<option value="${String(c).replace(/"/g, '&quot;')}">`).join('');
         const box = document.getElementById('hist-lista'); box.style.display = 'block';
         box.innerHTML =
-            `<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
-               <label style="font-size:.85rem;color:var(--mut)">Carteira:</label>
-               <select id="histFiltro" onchange="aplicarFiltroHist()" style="padding:9px 12px;border:1px solid var(--line);border-radius:10px;font-size:.9rem">
-                 <option value="">Todas</option>
-                 ${histCarteiras.map(c => `<option value="${String(c).replace(/"/g, '&quot;')}">${c}</option>`).join('')}
-               </select>
+            `<div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+               <div><label style="font-size:.78rem;color:var(--mut);display:block;margin-bottom:4px">Carteira (centro de custo)</label>
+                 <select id="histFiltro" onchange="aplicarFiltroHist()" style="padding:9px 12px;border:1px solid var(--line);border-radius:10px;font-size:.9rem">
+                   <option value="">Todas</option>
+                   ${histCarteiras.map(c => `<option value="${String(c).replace(/"/g, '&quot;')}">${c}</option>`).join('')}
+                 </select></div>
+               <div><label style="font-size:.78rem;color:var(--mut);display:block;margin-bottom:4px">De</label>
+                 <input type="date" id="histDe" onchange="aplicarFiltroHist()" style="padding:8px 10px;border:1px solid var(--line);border-radius:10px;font-size:.9rem"></div>
+               <div><label style="font-size:.78rem;color:var(--mut);display:block;margin-bottom:4px">Até</label>
+                 <input type="date" id="histAte" onchange="aplicarFiltroHist()" style="padding:8px 10px;border:1px solid var(--line);border-radius:10px;font-size:.9rem"></div>
+               <button class="btn btn-refresh" style="margin-top:0" onclick="limparFiltroPeriodo()">Limpar período</button>
                <span style="flex:1"></span>
                <button class="btn btn-refresh" style="margin-top:0" onclick="recarregarHistorico()">🔄 Atualizar</button>
-             </div><div id="hist-itens"></div>`;
+             </div>
+             <div id="hist-resumo"></div>
+             <div id="hist-itens"></div>`;
+        aplicarFiltroHist();
+    }
+
+    function limparFiltroPeriodo() {
+        const de = document.getElementById('histDe'), ate = document.getElementById('histAte');
+        if (de) de.value = ''; if (ate) ate.value = '';
         aplicarFiltroHist();
     }
 
     function aplicarFiltroHist() {
-        const sel = document.getElementById('histFiltro');
-        const f = sel ? sel.value : '';
-        const lista = f ? histArquivos.filter(a => a.carteira === f) : histArquivos;
+        const selEl = document.getElementById('histFiltro');
+        const f = selEl ? selEl.value : '';
+        const deEl = document.getElementById('histDe'), ateEl = document.getElementById('histAte');
+        let deTs = -Infinity, ateTs = Infinity;
+        if (deEl && deEl.value) { const [y, m, d] = deEl.value.split('-').map(Number); deTs = new Date(y, m - 1, d, 0, 0, 0).getTime(); }
+        if (ateEl && ateEl.value) { const [y, m, d] = ateEl.value.split('-').map(Number); ateTs = new Date(y, m - 1, d, 23, 59, 59, 999).getTime(); }
+        const lista = histArquivos.filter(a => (!f || a.carteira === f) && a.ts >= deTs && a.ts <= ateTs);
+        const fmt = n => Number(n || 0).toLocaleString('pt-BR');
+
+        // Centro de custo: consultas somadas por carteira
+        const porCart = {}; let totalConsultas = 0;
+        lista.forEach(a => {
+            const t = Number(a.total) || 0;
+            if (!porCart[a.carteira]) porCart[a.carteira] = { arquivos: 0, consultas: 0 };
+            porCart[a.carteira].arquivos++; porCart[a.carteira].consultas += t; totalConsultas += t;
+        });
+        const carts = Object.keys(porCart).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+        document.getElementById('hist-resumo').innerHTML =
+            `<div style="background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px">
+               <div style="display:flex;justify-content:space-between;align-items:center;${carts.length ? 'margin-bottom:10px' : ''}">
+                 <b style="color:var(--wa-deep)">Centro de custo</b>
+                 <span style="font-size:.9rem"><b>${fmt(totalConsultas)}</b> consulta(s) · ${lista.length} arquivo(s)</span>
+               </div>
+               ${carts.length ? '<table style="width:100%;border-collapse:collapse;font-size:.85rem"><tr style="color:var(--mut);text-align:left"><th style="padding:4px 0">Carteira</th><th style="text-align:right">Arquivos</th><th style="text-align:right">Consultas</th></tr>'
+                + carts.map(c => `<tr style="border-top:1px solid var(--line)"><td style="padding:5px 0">${c}</td><td style="text-align:right">${porCart[c].arquivos}</td><td style="text-align:right"><b>${fmt(porCart[c].consultas)}</b></td></tr>`).join('')
+                + '</table>' : '<span style="color:var(--mut);font-size:.85rem">Nenhum resultado no filtro.</span>'}
+             </div>`;
+
+        // Lista de arquivos
         const cont = document.getElementById('hist-itens');
-        if (!lista.length) { cont.innerHTML = '<p style="color:var(--mut)">Nenhum resultado.</p>'; return; }
-        cont.innerHTML = '<div style="max-height:340px;overflow:auto">' + lista.map(a =>
+        if (!lista.length) { cont.innerHTML = ''; return; }
+        cont.innerHTML = '<div style="max-height:300px;overflow:auto">' + lista.map(a =>
             `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:var(--soft)">
                <div>
                  <div style="font-weight:700;font-size:.9rem;color:var(--wa-deep)">${a.carteira}</div>
-                 <div style="color:var(--mut);font-size:.78rem">${a.data} · ${(a.tamanho / 1024).toFixed(1)} KB${a.total ? ` · ${a.total} números` : ''}</div>
+                 <div style="color:var(--mut);font-size:.78rem">${a.data} · ${(a.tamanho / 1024).toFixed(1)} KB${a.total ? ` · ${fmt(a.total)} números` : ''}</div>
                </div>
                <div style="display:flex;gap:8px">
                  <button class="btn btn-refresh" style="margin-top:0" onclick="baixarDoHistorico('${a.nome}')">⬇ Baixar</button>
