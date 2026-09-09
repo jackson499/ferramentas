@@ -1,13 +1,16 @@
 # Dependências
 node_modules/
 
-# Sessão do WhatsApp (NUNCA versionar — contém credenciais de autenticação)
+# Sessão do WhatsApp (NUNCA versionar — contém credenciais)
 .wwebjs_auth/
 .wwebjs_cache/
 
 # Variáveis de ambiente e segredos
 .env
 .env.*
+
+# Config local (senhas do painel — não versionar)
+config.json
 
 # Logs e temporários
 *.log
