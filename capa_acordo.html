@@ -462,6 +462,7 @@ function updateContratosCampos() {
     const container = document.getElementById('contratos_container');
     if (!qtdSel || !container) return;
     const n = parseInt(qtdSel.value, 10);
+    const __prev={}; container.querySelectorAll('[name]').forEach(el=>{__prev[el.name]=el.value;});
     container.innerHTML = '';
     for (let i = 1; i <= n; i++) {
         const section = document.createElement('section');
@@ -486,9 +487,9 @@ function updateContratosCampos() {
             <div class='col-3' id='contrato${i}_valor_acordo_group' style='display:none;'><label class='req'>Valor (À vista)</label><input name='contrato${i}_valor_acordo' id='contrato${i}_valor_acordo' class='no-print'/><div class='print-only-content'></div></div>
 
             <div class='col-3' id='contrato${i}_taxa_juros_group' style='display:none;'><label>Taxa de Juros</label><input name='contrato${i}_taxa_juros' class='no-print'/><div class='print-only-content'></div></div>
-            <div class='col-3' id='contrato${i}_qtd_parcelas_group' style='display:none;'><label class='req'>Qtd. de Parcelas</label><input name='contrato${i}_qtd_parcelas' type='number' min='1'/></div>
+            <div class='col-3' id='contrato${i}_qtd_parcelas_group' style='display:none;'><label class='req'>Qtd. de Parcelas</label><input name='contrato${i}_qtd_parcelas' id='contrato${i}_qtd_parcelas' type='number' min='1'/></div>
             <div class='col-3' id='contrato${i}_valor_parcela_group' style='display:none;'><label>Valor da Parcela</label><input name='contrato${i}_valor_parcela' id='contrato${i}_valor_parcela' class='no-print'/><div class='print-only-content'></div></div>
-            <div class='col-3' id='contrato${i}_venc_primeira_group' style='display:none;'><label class='req'>Venc. 1ª Parcela</label><input name='contrato${i}_venc_primeira' type='date'/></div>
+            <div class='col-3' id='contrato${i}_venc_primeira_group' style='display:none;'><label class='req'>Venc. 1ª Parcela</label><input name='contrato${i}_venc_primeira' id='contrato${i}_venc_primeira' type='date'/></div>
             <div class='col-3' id='contrato${i}_fluxo_container' style='display:none;'><label class='req'>Fluxo de Pagamento</label>
               <select name='contrato${i}_fluxo_pagamento' id='contrato${i}_fluxo_pagamento'>
                 <option value=''>…</option><option>Sequencial</option><option>Escalonado</option>
@@ -536,6 +537,9 @@ function updateContratosCampos() {
         handleAtualizacaoParcelas(i);
         handlePixFields(`contrato${i}_forma_pagamento`, `contrato${i}_acordo_pix_group`, `contrato${i}_acordo_chave_pix`);
     }
+    Object.keys(__prev).forEach(nm=>{ const el=container.querySelector('[name="'+nm+'"]'); if(el){ el.value=__prev[nm]; } });
+    for(let j=1;j<=n;j++){ try{handleAcordoModalidade(j);}catch(e){} try{handleAtualizacaoParcelas(j);}catch(e){} }
+    container.querySelectorAll('.no-print, select').forEach(f=>f.dispatchEvent(new Event('input',{bubbles:true})));
 }
 
 
